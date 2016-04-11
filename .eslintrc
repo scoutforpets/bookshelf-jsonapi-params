@@ -1,0 +1,9 @@
+{
+    "extends": "hapi",
+    "parserOptions": {,
+        "sourceType": "module",
+        "ecmaFeatures": {
+            "experimentalObjectRestSpread": true
+        }
+    },
+}
