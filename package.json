@@ -1,16 +1,14 @@
 {
   "name": "bookshelf-jsonapi-params",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Automatically applies relations, filters, and more from the JSON API spec to your Bookshelf.js results",
   "main": "./dist/index.js",
   "options": {
     "mocha": "--compilers js:babel-core/register --bail test"
   },
   "scripts": {
-    "clean": "rm -rf ./dist",
-    "dev": "babel -w -q -L -D ./src/ --out-dir ./dist/",
-    "build": "babel -q -L -D ./src/ --out-dir ./dist/",
-    "prepublish": "npm run clean && npm run build",
+    "build": "babel -q -L -D ./src/ --out-dir ./dist/ --presets babel-preset-es2015",
+    "prepublish": "npm run build",
     "test": "./node_modules/.bin/mocha $npm_package_options_mocha"
   },
   "repository": {
