@@ -73,9 +73,9 @@ Note that only the `firstName` and `lastName` attributes are returned, the resul
 
 ## API
 
-`fetchJsonApi(options)` - calling `fetchJsonApi` with no options is just like a plain call to `Bookshelf.fetch()` or `Bookshelf.fetchAll()` and isn't useful. Please specify `options`.
+`fetchJsonApi(options, type)` - calling `fetchJsonApi` with no options is just like a plain call to `Model#fetch` or `Model#fetchAll`. Note that in addition to the options below, you may also pass anything you can pass to `Model#fetch` or `Model#fetchAll`.
 
-Option    | Description
+`options`    | Description
 :------------- | :-------------
 filter _object_  | Filters a result set based specific field. Example: `/pets?filter[name]=max` would only return pets named max.
 fields _object_   | Limits the fields returned as part of the record. Example: `/pets?fields[pets]=name` would return pet records with only the name field rather than every field.
@@ -84,6 +84,8 @@ page _object_  | Paginates the result set. Example: `/pets?page[limit]=25&page[o
 sort _array_     | Sorts the result set by specific fields. Example: `/pets?sort=-weight,birthDate` would return the records sorted by `weight` descending, then `birthDate` ascending
 
 See the **[specific section of the JSON API spec](http://jsonapi.org/format/#fetching-includes)** that deals with these parameters for more information.
+
+`type` - by default, the JSON API resource type will be set using the `tableName` defined in your Bookshelf model. If your resource type is different, you can pass the resource type into `fetchJsonApi` directly.
 
 ### Pagination and Sorting
 Under the hood, this plugin uses the excellent [bookshelf-page](https://github.com/anyong/bookshelf-page) plugin. That said, please see the available options that can be passed in via the `page` parameter.
