@@ -2,6 +2,7 @@
 
 import {
     assign as _assign,
+    find as _find,
     forEach as _forEach,
     has as _has,
     includes as _includes,
@@ -9,6 +10,7 @@ import {
     isArray as _isArray,
     isObject as _isObject,
     isObjectLike as _isObjectLike,
+    isUndefined as _isUndefined,
     keys as _keys,
     zipObject as _zipObject
 } from 'lodash';
@@ -72,13 +74,20 @@ export default (Bookshelf, options = {}) => {
         // Currently, there isn't a great way to determine whether the incoming query
         // will return a Model or Collection. This is problematic in that always calling
         // fetchAll will have an effect on how the JSONAPI response is formatted. Until
-        // there is a better way, this lib will check to see if the incoming query has
-        // any criteria attached to it, and therefore make an assumption that if there
-        // are criteria, that a specific model is being requested. Otherwise, it will
-        // assume that a collection is being requested.
+        // then, we'll do some criteria checking that should work for most cases.
         internals.isCollection = () => {
 
-            return this.query()._statements.length > 0 ? false : true;
+            const criteria = this.query()._statements;
+
+            // If attributes were passed (as a result of `forge({some data})`)
+            // or there `id` was specified in the criteria, then assume we're looking
+            // for a specific model. Otherwise, it's a collection.
+            if (!_isEmpty(this.attributes) ||
+                !_isUndefined(_find(criteria, ['column', internals.idAttribute]))) {
+                return false;
+            }
+
+            return true;
         };
 
         /**
