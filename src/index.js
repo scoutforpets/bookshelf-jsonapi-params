@@ -185,10 +185,8 @@ export default (Bookshelf, options = {}) => {
                     }
                 });
 
-                return { withRelated: relations };
+                _assign(opts, { withRelated: relations });
             }
-
-            return null;
         };
 
         /**
@@ -280,6 +278,10 @@ export default (Bookshelf, options = {}) => {
             return false;
         };
 
+        ////////////////////////////////
+        /// Process parameters
+        ////////////////////////////////
+
         // Apply filters
         internals.buildFilters(filter);
 
@@ -288,6 +290,9 @@ export default (Bookshelf, options = {}) => {
 
         // Apply sorting
         internals.buildSort(sort);
+
+        // Apply relations
+        internals.buildIncludes(include);
 
         // Assign default paging options if they were passed to the plugin
         // and no pagination parameters were passed directly to the method.
@@ -303,7 +308,7 @@ export default (Bookshelf, options = {}) => {
             _isObject(page) &&
             !_isEmpty(page)) {
 
-            const pageOptions = _assign(page, internals.buildIncludes(include));
+            const pageOptions = _assign(opts, page);
 
             return internals.model.fetchPage(pageOptions);
         }
@@ -312,11 +317,11 @@ export default (Bookshelf, options = {}) => {
 
         // Call `fetchAll` to return Collection
         if (internals.isCollection()) {
-            return internals.model.fetchAll(internals.buildIncludes(include));
+            return internals.model.fetchAll(opts);
         }
 
         // Otherwise, call `fetch` to return Model
-        return internals.model.fetch(internals.buildIncludes(include));
+        return internals.model.fetch(opts);
     };
 
     // Add `fetchJsonApi()` method to Bookshelf Model/Collection prototypes
