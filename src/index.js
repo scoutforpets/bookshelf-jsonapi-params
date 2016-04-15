@@ -2,7 +2,6 @@
 
 import {
     assign as _assign,
-    find as _find,
     forEach as _forEach,
     has as _has,
     includes as _includes,
@@ -10,7 +9,6 @@ import {
     isArray as _isArray,
     isObject as _isObject,
     isObjectLike as _isObjectLike,
-    isUndefined as _isUndefined,
     keys as _keys,
     zipObject as _zipObject
 } from 'lodash';
@@ -54,7 +52,9 @@ export default (Bookshelf, options = {}) => {
      *     with the model.
      * @return {Promise<Model|Collection|null>}
      */
-    const fetchJsonApi = function (opts = {}, type) {
+    const fetchJsonApi = function (opts, isCollection = true, type) {
+
+        opts = opts || {};
 
         const internals = {};
         const { include, fields, sort, page = {}, filter } = opts;
@@ -70,25 +70,6 @@ export default (Bookshelf, options = {}) => {
         // Initialize an instance of the current model and clone the initial query
         internals.model =
             this.constructor.forge().query((qb) => _assign(qb, this.query().clone()));
-
-        // Currently, there isn't a great way to determine whether the incoming query
-        // will return a Model or Collection. This is problematic in that always calling
-        // fetchAll will have an effect on how the JSONAPI response is formatted. Until
-        // then, we'll do some criteria checking that should work for most cases.
-        internals.isCollection = () => {
-
-            const criteria = this.query()._statements;
-
-            // If attributes were passed (as a result of `forge({some data})`)
-            // or there `id` was specified in the criteria, then assume we're looking
-            // for a specific model. Otherwise, it's a collection.
-            if (!_isEmpty(this.attributes) ||
-                !_isUndefined(_find(criteria, ['column', internals.idAttribute]))) {
-                return false;
-            }
-
-            return true;
-        };
 
         /**
          * Build a query based on the `fields` parameter.
@@ -296,7 +277,7 @@ export default (Bookshelf, options = {}) => {
 
         // Assign default paging options if they were passed to the plugin
         // and no pagination parameters were passed directly to the method.
-        if (internals.isCollection() &&
+        if (isCollection &&
             _isEmpty(page) &&
             _has(options, 'pagination')) {
 
@@ -304,7 +285,7 @@ export default (Bookshelf, options = {}) => {
         }
 
         // Apply paging
-        if (internals.isCollection() &&
+        if (isCollection &&
             _isObject(page) &&
             !_isEmpty(page)) {
 
@@ -316,7 +297,7 @@ export default (Bookshelf, options = {}) => {
         // Determine whether to return a Collection or Model
 
         // Call `fetchAll` to return Collection
-        if (internals.isCollection()) {
+        if (isCollection) {
             return internals.model.fetchAll(opts);
         }
 

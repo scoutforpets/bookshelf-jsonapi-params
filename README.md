@@ -71,9 +71,12 @@ The above example would yield something like the following when transformed to J
 
 Note that only the `firstName` and `lastName` attributes are returned, the results are ordered by `lastName` descending, and only 10 results were returned.
 
+### A Note on Returning a Collection vs Resource
+If you're returning a single resource from a call such as `GET /customers/1`, make sure to pass `false` as the second parameter to `fetchJsonApi`. See [this issue](https://github.com/scoutforpets/bookshelf-jsonapi-params/issues/4) for more information/reasoning.
+
 ## API
 
-`fetchJsonApi(options, type)` - calling `fetchJsonApi` with no options is just like a plain call to `Model#fetch` or `Model#fetchAll`. Note that in addition to the options below, you may also pass anything you can pass to `Model#fetch` or `Model#fetchAll`.
+`fetchJsonApi(options, isCollection, type)` - calling `fetchJsonApi` with no options is just like a plain call to `Model#fetch` or `Model#fetchAll`. Note that in addition to the options below, you may also pass anything you can pass to `Model#fetch` or `Model#fetchAll`.
 
 `options`    | Description
 :------------- | :-------------
@@ -84,6 +87,8 @@ page _object_  | Paginates the result set. Example: `/pets?page[limit]=25&page[o
 sort _array_     | Sorts the result set by specific fields. Example: `/pets?sort=-weight,birthDate` would return the records sorted by `weight` descending, then `birthDate` ascending
 
 See the **[specific section of the JSON API spec](http://jsonapi.org/format/#fetching-includes)** that deals with these parameters for more information.
+
+`isCollection` - by default, internal calls will be made to `fetchAll`. If you're returning a single resource, set `isCollection` to `false`.
 
 `type` - by default, the JSON API resource type will be set using the `tableName` defined in your Bookshelf model. If your resource type is different, you can pass the resource type into `fetchJsonApi` directly.
 
