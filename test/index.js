@@ -106,7 +106,7 @@ describe('bookshelf-jsonapi-params', () => {
 
             return PersonModel
                 .where({ id: 1 })
-                .fetchJsonApi()
+                .fetchJsonApi(null, false)
                 .then((person) => {
 
                     expect(person.get('name')).to.equal('Barney');
@@ -138,7 +138,7 @@ describe('bookshelf-jsonapi-params', () => {
                     fields: {
                         person: ['name']
                     }
-                })
+                }, false)
                 .then((person) => {
 
                     expect(person.get('name')).to.equal('Baby Bop');
@@ -193,7 +193,7 @@ describe('bookshelf-jsonapi-params', () => {
                 .where({ id: 1 })
                 .fetchJsonApi({
                     include: ['pets']
-                })
+                }, false)
                 .then((result) => {
 
                     const relation = result.related('pets');
