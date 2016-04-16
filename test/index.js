@@ -277,6 +277,25 @@ describe('bookshelf-jsonapi-params', () => {
                     done();
                 });
         });
+
+        it('should disable paging regardless of defaults passed to the plugin', (done) => {
+
+            repository.plugin(JsonApiParams, {
+                pagination: { limit: 1 }
+            });
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    page: false
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.pagination).to.not.exist;
+                    done();
+                });
+        });
     });
 
     describe('passing default paging parameters to the plugin', () => {

@@ -83,7 +83,7 @@ If you're returning a single resource from a call such as `GET /customers/1`, ma
 filter _object_  | Filters a result set based specific field. Example: `/pets?filter[name]=max` would only return pets named max.
 fields _object_   | Limits the fields returned as part of the record. Example: `/pets?fields[pets]=name` would return pet records with only the name field rather than every field.
 include _array_  | Returns relationships as part of the payload. Example: `/pets?include=owner` would return the pet record in addition to the full record of its owner.
-page _object_  | Paginates the result set. Example: `/pets?page[limit]=25&page[offset]=0` would return the first 25 records.
+page _object/false_  | Paginates the result set. Example: `/pets?page[limit]=25&page[offset]=0` would return the first 25 records. If you've passed default pagination parameters to the plugin, but would like to disable paging on a specific call, just set `page` to `false`.
 sort _array_     | Sorts the result set by specific fields. Example: `/pets?sort=-weight,birthDate` would return the records sorted by `weight` descending, then `birthDate` ascending
 
 See the **[specific section of the JSON API spec](http://jsonapi.org/format/#fetching-includes)** that deals with these parameters for more information.
@@ -93,7 +93,7 @@ See the **[specific section of the JSON API spec](http://jsonapi.org/format/#fet
 `type` - by default, the JSON API resource type will be set using the `tableName` defined in your Bookshelf model. If your resource type is different, you can pass the resource type into `fetchJsonApi` directly.
 
 ### Pagination and Sorting
-Under the hood, this plugin uses the excellent [bookshelf-page](https://github.com/anyong/bookshelf-page) plugin. That said, please see the available options that can be passed in via the `page` parameter.
+Under the hood, this plugin uses the excellent [bookshelf-page](https://github.com/anyong/bookshelf-page) plugin. Please see the available options that can be passed in via the `page` parameter.
 
 #### Default Pagination Parameters
 If you'd like your result sets to be paginated by default without having to add pagination options to each call, you can set the default pagination parameters when registering the plugin:
