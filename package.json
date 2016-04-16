@@ -42,7 +42,7 @@
     "bluebird": "3.3.5",
     "bookshelf": "0.9.4",
     "chai": "3.5.0",
-    "eslint": "2.7.0",
+    "eslint": "2.8.0",
     "eslint-config-hapi": "9.1.0",
     "eslint-plugin-hapi": "4.0.0",
     "knex": "0.10.0",
@@ -55,6 +55,6 @@
   },
   "dependencies": {
     "bookshelf-page": "0.3.2",
-    "lodash": "4.10.0"
+    "lodash": "4.11.1"
   }
 }
