@@ -10,6 +10,7 @@ import {
     isObject as _isObject,
     isObjectLike as _isObjectLike,
     keys as _keys,
+    map as _map,
     zipObject as _zipObject
 } from 'lodash';
 
@@ -84,6 +85,12 @@ export default (Bookshelf, options = {}) => {
 
                 // Process fields for each type/relation
                 _forEach(fieldNames, (value, key) => {
+
+                    // Add qualifying table name to avoid ambiguous columns
+                    fieldNames[key] = _map(fieldNames[key], (value) => {
+
+                        return `${key}.${value}`;
+                    });
 
                     // Only process the field if it's not a relation. Fields
                     // for relations are processed in `buildIncludes()`
@@ -266,14 +273,15 @@ export default (Bookshelf, options = {}) => {
         // Apply filters
         internals.buildFilters(filter);
 
-        // Apply sparse fieldsets
-        internals.buildFields(fields);
-
         // Apply sorting
         internals.buildSort(sort);
 
         // Apply relations
         internals.buildIncludes(include);
+
+
+        // Apply sparse fieldsets
+        internals.buildFields(fields);
 
         // Assign default paging options if they were passed to the plugin
         // and no pagination parameters were passed directly to the method.
