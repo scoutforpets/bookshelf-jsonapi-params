@@ -135,7 +135,7 @@ export default (Bookshelf, options = {}) => {
                     _forEach(filterValues, (value, key) => {
 
                         // Determine if there are multiple filters to be applied
-                        value = _isArray(value) ? value.split(',') : value;
+                        value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
 
                         qb.whereIn.apply(qb, [key, value]);
                     });

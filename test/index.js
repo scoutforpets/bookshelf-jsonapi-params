@@ -58,6 +58,7 @@ describe('bookshelf-jsonapi-params', () => {
                     table.increments('id').primary();
                     table.string('name');
                     table.string('gender');
+                    table.string('type');
                 }),
                 repository.knex.schema.createTable('pet', (table) => {
 
@@ -73,17 +74,21 @@ describe('bookshelf-jsonapi-params', () => {
                 PersonModel.forge().save({
                     id: 1,
                     name: 'Barney',
-                    gender: 'm'
+                    gender: 'm',
+                    type: 't-rex'
                 }),
                 PersonModel.forge().save({
                     id: 2,
                     name: 'Baby Bop',
-                    gender: 'f'
+                    gender: 'f',
+                    type: 'tricerotops'
+
                 }),
                 PersonModel.forge().save({
                     id: 3,
-                    name: 'Baby Bop',
-                    gender: 'm'
+                    name: 'Cookie Monster',
+                    gender: 'm',
+                    type: 'monster'
                 }),
                 PetModel.forge().save({
                     id: 1,
@@ -180,13 +185,12 @@ describe('bookshelf-jsonapi-params', () => {
                 .forge()
                 .fetchJsonApi({
                     filter: {
-                        name: 'Baby Bop',
-                        gender: 'm'
+                        type: 't-rex,tricerotops'
                     }
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(1);
+                    expect(result.models).to.have.length(2);
                     done();
                 });
         });
