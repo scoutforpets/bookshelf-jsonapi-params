@@ -132,7 +132,13 @@ export default (Bookshelf, options = {}) => {
                 // build the filter query
                 internals.model.query((qb) => {
 
-                    qb.where.apply(qb, [filterValues]);
+                    _forEach(filterValues, (value, key) => {
+
+                        // Determine if there are multiple filters to be applied
+                        value = _isArray(value) ? value.split(',') : value;
+
+                        qb.whereIn.apply(qb, [key, value]);
+                    });
                 });
             }
         };
