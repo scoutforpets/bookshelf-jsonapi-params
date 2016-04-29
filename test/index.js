@@ -80,6 +80,11 @@ describe('bookshelf-jsonapi-params', () => {
                     name: 'Baby Bop',
                     gender: 'f'
                 }),
+                PersonModel.forge().save({
+                    id: 3,
+                    name: 'Baby Bop',
+                    gender: 'm'
+                }),
                 PetModel.forge().save({
                     id: 1,
                     name: 'Big Bird',
@@ -122,7 +127,7 @@ describe('bookshelf-jsonapi-params', () => {
                 .fetchJsonApi()
                 .then((result) => {
 
-                    expect(result.models).to.have.length(2);
+                    expect(result.models).to.have.length(3);
                     done();
                 });
         });
@@ -148,7 +153,7 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
-    describe('passing a `filters` parameter', () => {
+    describe('passing a `filters` parameter with a single filter', () => {
 
         it('should return a single record with the matching id', (done) => {
 
@@ -157,6 +162,26 @@ describe('bookshelf-jsonapi-params', () => {
                 .fetchJsonApi({
                     filter: {
                         id: 1
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    done();
+                });
+        });
+    });
+
+    describe('passing a `filters` parameter with multiple filters', () => {
+
+        it('should return a single record that matches both filters', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        name: 'Baby Bop',
+                        gender: 'm'
                     }
                 })
                 .then((result) => {
@@ -178,8 +203,8 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(2);
-                    expect(result.models[0].get('id')).to.equal(2);
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('id')).to.equal(3);
                     done();
                 });
         });
@@ -236,7 +261,7 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('id')).to.equal(2);
-                    expect(result.pagination.pageCount).to.equal(2);
+                    expect(result.pagination.pageCount).to.equal(3);
                     done();
                 });
         });
@@ -273,7 +298,7 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('id')).to.equal(2);
-                    expect(result.pagination.pageCount).to.equal(2);
+                    expect(result.pagination.pageCount).to.equal(3);
                     done();
                 });
         });
@@ -291,7 +316,7 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(2);
+                    expect(result.models).to.have.length(3);
                     expect(result.pagination).to.not.exist;
                     done();
                 });
@@ -317,7 +342,7 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('id')).to.equal(1);
-                    expect(result.pagination.pageCount).to.equal(2);
+                    expect(result.pagination.pageCount).to.equal(3);
                     done();
                 });
         });
