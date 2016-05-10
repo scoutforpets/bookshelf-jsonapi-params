@@ -1,4 +1,5 @@
-# bookshelf-jsonapi-params [![Build Status](https://travis-ci.org/scoutforpets/bookshelf-jsonapi-params.svg?branch=master)](https://travis-ci.org/scoutforpets/bookshelf-jsonapi-params)
+# bookshelf-jsonapi-params
+[![Build Status](https://travis-ci.org/scoutforpets/bookshelf-jsonapi-params.svg?branch=master)](https://travis-ci.org/scoutforpets/bookshelf-jsonapi-params) [![npm version](https://badge.fury.io/js/bookshelf-jsonapi-params.svg)](https://badge.fury.io/js/bookshelf-jsonapi-params) [![npm version](https://david-dm.org/scoutforpets/bookshelf-jsonapi-params.svg)](https://david-dm.org/scoutforpets/bookshelf-jsonapi-params)
 
 The [JSON API spec](https://jsonapi.org/format) defines standard parameters to be used when refining result sets via filtering, sparse fieldsets, paging, etc. This [Bookshelf.js](https://github.com/tgriesser/bookshelf) plugin adds a method to your models that can be called to automatically refine the results of your queries based on the aforementioned parameters.
 
