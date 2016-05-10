@@ -198,17 +198,32 @@ describe('bookshelf-jsonapi-params', () => {
 
     describe('passing a `sort` parameter', () => {
 
-        it('should return records sorted by id descending', (done) => {
+        it('should return records sorted by name ascending', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    sort: ['-id']
+                    sort: ['name']
                 })
                 .then((result) => {
 
                     expect(result.models).to.have.length(3);
-                    expect(result.models[0].get('id')).to.equal(3);
+                    expect(result.models[0].get('name')).to.equal('Baby Bop');
+                    done();
+                });
+        });
+
+        it('should return records sorted by name descending', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    sort: ['-name']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('name')).to.equal('Cookie Monster');
                     done();
                 });
         });
