@@ -188,14 +188,21 @@ export default (Bookshelf, options = {}) => {
          * @param  sortValues {array}
          */
         internals.buildSort = (sortValues = []) => {
+            const sortDirection = {};
 
             if (_isArray(sortValues) && !_isEmpty(sortValues)) {
+
+                for (let i = 0; i < sortValues.length; i++) {
+                    if (typeof sortValues[i] === 'string' && sortValues[i].startsWith('-')) {
+                        sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
+                        sortDirection[sortValues[i]] = 'desc';
+                    }
+                }
 
                 sortValues = internals.formatColumnNames(sortValues);
 
                 _forEach(sortValues, (sortBy) => {
-
-                    internals.model.orderBy(sortBy);
+                    internals.model.orderBy(sortBy, typeof sortDirection[sortBy] === 'undefined' ? 'asc' : sortDirection[sortBy]);
                 });
             }
         };
