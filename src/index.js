@@ -193,7 +193,7 @@ export default (Bookshelf, options = {}) => {
             if (_isArray(sortValues) && !_isEmpty(sortValues)) {
 
                 for (let i = 0; i < sortValues.length; i++) {
-                    if (typeof sortValues[i] === 'string' && sortValues[i].startsWith('-')) {
+                    if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
                         sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
                         sortDirection[sortValues[i]] = 'desc';
                     }
