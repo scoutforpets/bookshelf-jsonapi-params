@@ -1,5 +1,17 @@
 # Changelog
 
+### 0.5.0 (June 2, 2016)
+- Added the ability to pass in your own `withRelated` options to Bookshelf and have it override a relation with the same name that was passed via `include`. This is useful when you may need to do something with a relation that is out of the realm of Bookshelf's defaults.
+- Dependency updates
+
+### 0.4.0 (May 10, 2016)
+- Merged PR [#10](https://github.com/scoutforpets/bookshelf-jsonapi-params/pull/10) to fix [#9](https://github.com/scoutforpets/bookshelf-jsonapi-params/issues/9)
+- Dependency updates
+- Added badges
+
+### 0.3.3 (April 28, 2016)
+- Fixed an issue where multiple filters were not applied properly
+
 ### 0.3.3 (April 28, 2016)
 - Fixed an issue where multiple filters were not applied properly
 
