@@ -250,93 +250,26 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
-    describe('passing a `page` parameter', () => {
+    describe('passing `withRelated` parameters to the plugin', () => {
 
-        it('should properly paginate records', (done) => {
-
-            PersonModel
-                .forge()
-                .fetchJsonApi({
-                    page: {
-                        limit: 1,
-                        offset: 0
-                    }
-                })
-                .then((result) => {
-
-                    expect(result.models).to.have.length(1);
-                    expect(result.models[0].get('id')).to.equal(1);
-
-                    return PersonModel
-                        .forge()
-                        .fetchJsonApi({
-                            page: {
-                                limit: 1,
-                                offset: 1
-                            }
-                        });
-                })
-                .then((result) => {
-
-                    expect(result.models).to.have.length(1);
-                    expect(result.models[0].get('id')).to.equal(2);
-                    expect(result.pagination.pageCount).to.equal(3);
-                    done();
-                });
-        });
-
-        it('should override any default pagination settings passed to the plugin', (done) => {
-
-            repository.plugin(JsonApiParams, {
-                pagination: { limit: 2 }
-            });
+        it('should override any `include` parameters passed to the plugin', (done) => {
 
             PersonModel
-                .forge()
+                .where({ id: 1 })
                 .fetchJsonApi({
-                    page: {
-                        limit: 1,
-                        offset: 0
-                    }
-                })
+                    include: ['pets'],
+                    withRelated: [{
+                        'pets': (qb) => {
+                            qb.where({ name: 'Barney' });
+                        }
+                    }]
+                }, false)
                 .then((result) => {
 
-                    expect(result.models).to.have.length(1);
-                    expect(result.models[0].get('id')).to.equal(1);
+                    const relation = result.related('pets');
 
-                    return PersonModel
-                        .forge()
-                        .fetchJsonApi({
-                            page: {
-                                limit: 1,
-                                offset: 1
-                            }
-                        });
-                })
-                .then((result) => {
-
-                    expect(result.models).to.have.length(1);
-                    expect(result.models[0].get('id')).to.equal(2);
-                    expect(result.pagination.pageCount).to.equal(3);
-                    done();
-                });
-        });
-
-        it('should disable paging regardless of defaults passed to the plugin', (done) => {
-
-            repository.plugin(JsonApiParams, {
-                pagination: { limit: 1 }
-            });
-
-            PersonModel
-                .forge()
-                .fetchJsonApi({
-                    page: false
-                })
-                .then((result) => {
-
-                    expect(result.models).to.have.length(3);
-                    expect(result.pagination).to.not.exist;
+                    expect(result).to.be.an('object');
+                    expect(relation.id).to.not.exist;
                     done();
                 });
         });

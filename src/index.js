@@ -179,6 +179,10 @@ export default (Bookshelf, options = {}) => {
                     }
                 });
 
+                // Allow `withRelated` params passed to the plugin to override an `include`
+                _assign(relations, opts.withRelated);
+
+                // Assign the relations to the options passed to fetch/All
                 _assign(opts, { withRelated: relations });
             }
         };
