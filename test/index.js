@@ -248,18 +248,15 @@ describe('bookshelf-jsonapi-params', () => {
                     done();
                 });
         });
-    });
 
-    describe('passing `withRelated` parameters to the plugin', () => {
-
-        it('should override any `include` parameters passed to the plugin', (done) => {
+        it('should include the pets relationship when `include` is a Knex function', (done) => {
 
             PersonModel
                 .where({ id: 1 })
                 .fetchJsonApi({
-                    include: ['pets'],
-                    withRelated: [{
+                    include: [{
                         'pets': (qb) => {
+
                             qb.where({ name: 'Barney' });
                         }
                     }]

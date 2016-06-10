@@ -83,7 +83,7 @@ If you're returning a single resource from a call such as `GET /customers/1`, ma
 :------------- | :-------------
 filter _object_  | Filters a result set based specific field. Example: `/pets?filter[name]=max` would only return pets named max.
 fields _object_   | Limits the fields returned as part of the record. Example: `/pets?fields[pets]=name` would return pet records with only the name field rather than every field.
-include _array_  | Returns relationships as part of the payload. Example: `/pets?include=owner` would return the pet record in addition to the full record of its owner. _Note:_ you may override an `include` parameter with your own `withRelated` function by passing it as an option using the same relation name.
+include _array_  | Returns relationships as part of the payload. Example: `/pets?include=owner` would return the pet record in addition to the full record of its owner. _Note:_ you may override an `include` parameter with your own Knex function rather than just a string representing the relationship name.
 page _object/false_  | Paginates the result set. Example: `/pets?page[limit]=25&page[offset]=0` would return the first 25 records. If you've passed default pagination parameters to the plugin, but would like to disable paging on a specific call, just set `page` to `false`.
 sort _array_     | Sorts the result set by specific fields. Example: `/pets?sort=-weight,birthDate` would return the records sorted by `weight` descending, then `birthDate` ascending
 

@@ -1,5 +1,8 @@
 # Changelog
 
+### 0.6.0 (June 10, 2016)
+- Reverted previous ability to pass in your own `withRelated` options as it was stupid and more complicated than it needed to be. Instead, you can just override the `include` parameter to be a Knex function with the relationship name as the key.
+
 ### 0.5.0 (June 2, 2016)
 - Added the ability to pass in your own `withRelated` options to Bookshelf and have it override a relation with the same name that was passed via `include`. This is useful when you may need to do something with a relation that is out of the realm of Bookshelf's defaults.
 - Dependency updates
