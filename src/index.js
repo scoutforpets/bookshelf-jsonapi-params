@@ -229,9 +229,6 @@ export default (Bookshelf, options = {}) => {
                     columns = _zipObject(columnNames, null);
                 }
 
-                // Re-add idAttribute as it's required by the JSONAPI spec
-                columns[internals.idAttribute] = null;
-
                 // Format column names using Model#format
                 if (_isArray(columnNames[key])) {
                     columnNames[key] = _keys(this.format(columns));
