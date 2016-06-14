@@ -84,22 +84,22 @@ export default (Bookshelf, options = {}) => {
                 fieldNames = internals.formatColumnNames(fieldNames);
 
                 // Process fields for each type/relation
-                _forEach(fieldNames, (value, key) => {
+                _forEach(fieldNames, (fieldValue, fieldKey) => {
 
                     // Add qualifying table name to avoid ambiguous columns
-                    fieldNames[key] = _map(fieldNames[key], (value) => {
+                    fieldNames[fieldKey] = _map(fieldNames[fieldKey], (value) => {
 
-                        return `${key}.${value}`;
+                        return `${fieldKey}.${value}`;
                     });
 
                     // Only process the field if it's not a relation. Fields
                     // for relations are processed in `buildIncludes()`
-                    if (!_includes(include, key)) {
+                    if (!_includes(include, fieldKey)) {
 
                         // Add column to query
                         internals.model.query((qb) => {
 
-                            qb.column.apply(qb, [value]);
+                            qb.column.apply(qb, [fieldValue]);
 
                             // JSON API considers relationships as fields, so we
                             // need to make sure the id of the relation is selected
@@ -109,6 +109,7 @@ export default (Bookshelf, options = {}) => {
 
                                 if (!internals.isManyRelation(relation) &&
                                     !_includes(fieldNames[relation], relationId)) {
+
                                     qb.column.apply(qb, [relationId]);
                                 }
                             });
@@ -189,21 +190,27 @@ export default (Bookshelf, options = {}) => {
          * @param  sortValues {array}
          */
         internals.buildSort = (sortValues = []) => {
-            const sortDirection = {};
+
 
             if (_isArray(sortValues) && !_isEmpty(sortValues)) {
 
-                for (let i = 0; i < sortValues.length; i++) {
+                let sortDesc = [];
+
+                for (let i = 0; i < sortValues.length; ++i) {
+
+                    // Determine if the sort should be descending
                     if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
-                        sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
-                        sortDirection[sortValues[i]] = 'desc';
+                        sortDesc.push(sortValues[i].substring(1, sortValues[i].length));
                     }
                 }
 
+                // Format column names according to Model settings
+                sortDesc = internals.formatColumnNames(sortDesc);
                 sortValues = internals.formatColumnNames(sortValues);
 
                 _forEach(sortValues, (sortBy) => {
-                    internals.model.orderBy(sortBy, typeof sortDirection[sortBy] === 'undefined' ? 'asc' : sortDirection[sortBy]);
+
+                    internals.model.orderBy(sortBy, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
                 });
             }
         };
@@ -228,9 +235,6 @@ export default (Bookshelf, options = {}) => {
                 else {
                     columns = _zipObject(columnNames, null);
                 }
-
-                // Re-add idAttribute as it's required by the JSONAPI spec
-                columns[internals.idAttribute] = null;
 
                 // Format column names using Model#format
                 if (_isArray(columnNames[key])) {

@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import Bookshelf from 'bookshelf';
 import JsonApiParams from '../src/index';
 import Knex from 'knex';
@@ -33,6 +34,27 @@ describe('bookshelf-jsonapi-params', () => {
 
     const PersonModel = repository.Model.extend({
         tableName: 'person',
+
+        // Converts snake_case attributes to camelCase
+        parse: function (attrs) {
+
+            return _.reduce(attrs, (result, val, key) => {
+
+                result[_.camelCase(key)] = val;
+                return result;
+            }, {});
+        },
+
+        // Converts camelCase attributes to snake_case.
+        format: function (attrs) {
+
+            return _.reduce(attrs, (result, val, key) => {
+
+                result[_.snakeCase(key)] = val;
+                return result;
+            }, {});
+        },
+
         pets: function () {
 
             return this.hasOne(PetModel);
@@ -56,7 +78,7 @@ describe('bookshelf-jsonapi-params', () => {
                 repository.knex.schema.createTable('person', (table) => {
 
                     table.increments('id').primary();
-                    table.string('name');
+                    table.string('first_name');
                     table.string('gender');
                     table.string('type');
                 }),
@@ -73,20 +95,20 @@ describe('bookshelf-jsonapi-params', () => {
             return Promise.join(
                 PersonModel.forge().save({
                     id: 1,
-                    name: 'Barney',
+                    firstName: 'Barney',
                     gender: 'm',
                     type: 't-rex'
                 }),
                 PersonModel.forge().save({
                     id: 2,
-                    name: 'Baby Bop',
+                    firstName: 'Baby Bop',
                     gender: 'f',
-                    type: 'tricerotops'
+                    type: 'triceratops'
 
                 }),
                 PersonModel.forge().save({
                     id: 3,
-                    name: 'Cookie Monster',
+                    firstName: 'Cookie Monster',
                     gender: 'm',
                     type: 'monster'
                 }),
@@ -119,7 +141,7 @@ describe('bookshelf-jsonapi-params', () => {
                 .fetchJsonApi(null, false)
                 .then((person) => {
 
-                    expect(person.get('name')).to.equal('Barney');
+                    expect(person.get('firstName')).to.equal('Barney');
                     expect(person.get('gender')).to.equal('m');
                     done();
                 });
@@ -146,12 +168,12 @@ describe('bookshelf-jsonapi-params', () => {
                 .where({ id: 2 })
                 .fetchJsonApi({
                     fields: {
-                        person: ['name']
+                        person: ['firstName']
                     }
                 }, false)
                 .then((person) => {
 
-                    expect(person.get('name')).to.equal('Baby Bop');
+                    expect(person.get('firstName')).to.equal('Baby Bop');
                     expect(person.get('gender')).to.be.undefined;
                     done();
                 });
@@ -185,7 +207,7 @@ describe('bookshelf-jsonapi-params', () => {
                 .forge()
                 .fetchJsonApi({
                     filter: {
-                        type: 't-rex,tricerotops'
+                        type: 't-rex,triceratops'
                     }
                 })
                 .then((result) => {
@@ -198,32 +220,62 @@ describe('bookshelf-jsonapi-params', () => {
 
     describe('passing a `sort` parameter', () => {
 
-        it('should return records sorted by name ascending', (done) => {
+        it('should return records sorted by type ascending (single word param name)', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    sort: ['name']
+                    sort: ['type']
                 })
                 .then((result) => {
 
                     expect(result.models).to.have.length(3);
-                    expect(result.models[0].get('name')).to.equal('Baby Bop');
+                    expect(result.models[0].get('type')).to.equal('monster');
                     done();
                 });
         });
 
-        it('should return records sorted by name descending', (done) => {
+        it('should return records sorted by type descending (single word param name)', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    sort: ['-name']
+                    sort: ['-type']
                 })
                 .then((result) => {
 
                     expect(result.models).to.have.length(3);
-                    expect(result.models[0].get('name')).to.equal('Cookie Monster');
+                    expect(result.models[0].get('type')).to.equal('triceratops');
+                    done();
+                });
+        });
+
+        it('should return records sorted by name ascending (multi-word param name)', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    sort: ['firstName']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('firstName')).to.equal('Baby Bop');
+                    done();
+                });
+        });
+
+        it('should return records sorted by name descending (multi-word param name)', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    sort: ['-firstName']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
                     done();
                 });
         });
