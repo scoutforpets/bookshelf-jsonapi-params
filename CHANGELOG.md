@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.6.2 (June 13, 2016)
+- Resolves an issue where sorting on a multi-word column name (ex: startsAt) doesn't work properly.
+
+### 0.6.1 (June 13, 2016)
+- Botched NPM publish. Use 0.6.2.
+
 ### 0.6.0 (June 10, 2016)
 - Reverted previous ability to pass in your own `withRelated` options as it was stupid and more complicated than it needed to be. Instead, you can just override the `include` parameter to be a Knex function with the relationship name as the key.
 
