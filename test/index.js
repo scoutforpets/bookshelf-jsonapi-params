@@ -49,8 +49,16 @@ describe('bookshelf-jsonapi-params', () => {
         format: function (attrs) {
 
             return _.reduce(attrs, (result, val, key) => {
-
-                result[_.snakeCase(key)] = val;
+                // Handle case when key is 'table.column'
+                key = _.reduce(_.split(key, '.'), (new_key, name) => {
+                    if (!new_key) {
+                        new_key = _.snakeCase(name);
+                    } else {
+                        new_key = new_key + '.' + _.snakeCase(name);
+                    }
+                    return new_key;
+                }, null);
+                result[key] = val;
                 return result;
             }, {});
         },
@@ -86,7 +94,9 @@ describe('bookshelf-jsonapi-params', () => {
 
                     table.increments('id').primary();
                     table.string('name');
-                    table.integer('person_id');
+                    table.integer('person_id')
+                        .references('id')
+                        .inTable('person');
                 })
             );
         })
@@ -116,6 +126,16 @@ describe('bookshelf-jsonapi-params', () => {
                     id: 1,
                     name: 'Big Bird',
                     person_id: 1
+                }),
+                PetModel.forge().save({
+                    id: 2,
+                    name: 'Tweety Bird',
+                    person_id: 2
+                }),
+                PetModel.forge().save({
+                    id: 3,
+                    name: 'Road Runner',
+                    person_id: 3
                 })
             );
         })
@@ -246,6 +266,39 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(3);
                     expect(result.models[0].get('type')).to.equal('triceratops');
+                    done();
+                });
+        });
+
+        it('should return records sorted by pet.name ascending (table.column param name)', (done) => {
+            PersonModel
+                .forge()
+                .query((qb) => {
+                    qb.innerJoin('pet as pets','person.id','pets.person_id');
+                })
+                .fetchJsonApi({
+                    sort: ['pets.name']
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('firstName')).to.equal('Barney');
+                    done();
+                });
+        });
+
+        it('should return records sorted by pet.name descending (table.column param name)', (done) => {
+
+            PersonModel
+                .forge()
+                .query((qb) => {
+                    qb.innerJoin('pet as pets','person.id','pets.person_id');
+                })
+                .fetchJsonApi({
+                    sort: ['-pets.name']
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('firstName')).to.equal('Baby Bop');
                     done();
                 });
         });

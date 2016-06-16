@@ -200,7 +200,8 @@ export default (Bookshelf, options = {}) => {
 
                     // Determine if the sort should be descending
                     if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
-                        sortDesc.push(sortValues[i].substring(1, sortValues[i].length));
+                        sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
+                        sortDesc.push(sortValues[i]);
                     }
                 }
 
