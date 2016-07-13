@@ -2,6 +2,7 @@
 
 import {
     assign as _assign,
+    find as _find,
     forEach as _forEach,
     has as _has,
     includes as _includes,
@@ -13,6 +14,8 @@ import {
     map as _map,
     zipObject as _zipObject
 } from 'lodash';
+
+import Inflection from 'inflection';
 
 import Paginator from 'bookshelf-page';
 
@@ -57,7 +60,7 @@ export default (Bookshelf, options = {}) => {
 
         opts = opts || {};
 
-        const internals = {};
+        const internals = { sortRelations: [] };
         const { include, fields, sort, page = {}, filter } = opts;
 
         // Get a reference to the field being used as the id
@@ -172,6 +175,13 @@ export default (Bookshelf, options = {}) => {
                                 }
 
                                 qb.column.apply(qb, [fieldNames[relation]]);
+
+                                // Check to see if we should sort by relations
+                                const sortRelation = _find(internals.sortRelations, { relation: relation });
+
+                                if (sortRelation) {
+                                    qb.orderBy(sortRelation.field, sortRelation.direction);
+                                }
                             }
                         });
                     }
@@ -194,26 +204,63 @@ export default (Bookshelf, options = {}) => {
 
             if (_isArray(sortValues) && !_isEmpty(sortValues)) {
 
-                let sortDesc = [];
-
                 for (let i = 0; i < sortValues.length; ++i) {
 
-                    // Determine if the sort should be descending
-                    if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
-                        sortDesc.push(sortValues[i].substring(1, sortValues[i].length));
+                    // Parse the sort fields
+                    const toSort = internals.parseSort(sortValues[i]);
+
+                    if (!toSort.relation) {
+                        internals.model.orderBy(toSort.sortBy, toSort.direction);
+                    }
+                    else {
+                        internals.sortRelations.push(toSort);
                     }
                 }
-
-                // Format column names according to Model settings
-                sortDesc = internals.formatColumnNames(sortDesc);
-                sortValues = internals.formatColumnNames(sortValues);
-
-                _forEach(sortValues, (sortBy) => {
-
-                    internals.model.orderBy(sortBy, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
-                });
             }
         };
+
+        /**
+         * Parses a sort parameter.
+         * @param  {string} value
+         */
+        internals.parseSort = (value) => {
+
+            const parsed = {};
+
+            if (value !== '') {
+
+                // Set the sort directino
+                if (value.charAt(0) === '-') {
+
+                    parsed.direction = 'desc';
+
+                    // remove the - character
+                    value = value.slice(1, value.length);
+                }
+                else {
+                    parsed.direction = 'asc';
+                }
+
+                // Check for relation
+                value = internals.formatColumnNames(value.split('.'));
+
+                // Assign relation and field values
+                if (value.length > 1) {
+                    parsed.relation = Inflection.singularize(value[0]);
+                    parsed.field = value[1];
+                }
+                else {
+                    parsed.field = value[0];
+                }
+
+                // Reconstruct the field to sort on
+                parsed.sortBy = parsed.relation ? `${parsed.relation}.${parsed.field}` : parsed.field;
+
+                return parsed;
+            }
+
+            throw new Error('cannot parse an empty value');
+        },
 
         /**
          * Processes incoming parameters that represent columns names and
@@ -297,7 +344,6 @@ export default (Bookshelf, options = {}) => {
         // Apply relations
         internals.buildIncludes(include);
 
-
         // Apply sparse fieldsets
         internals.buildFields(fields);
 
@@ -317,14 +363,43 @@ export default (Bookshelf, options = {}) => {
 
             const pageOptions = _assign(opts, page);
 
-            return internals.model.fetchPage(pageOptions);
+            return internals.model
+                .query((qb) => {
+
+                    if (internals.sortRelations.length > 0) {
+
+                        const sortCriteria = internals.sortRelations[0];
+                        const joinKey = `${this.tableName}.${sortCriteria.relation}_id`;
+                        const foreignKey = `${sortCriteria.relation}.id`;
+
+                        qb.distinct();
+                        qb.leftJoin(sortCriteria.relation, joinKey, foreignKey);
+                        qb.orderBy(sortCriteria.sortBy, sortCriteria.direction);
+                    }
+                })
+                .fetchPage(pageOptions);
         }
 
         // Determine whether to return a Collection or Model
 
         // Call `fetchAll` to return Collection
         if (isCollection) {
-            return internals.model.fetchAll(opts);
+
+            return internals.model
+                .query((qb) => {
+
+                    if (internals.sortRelations.length > 0) {
+
+                        const sortCriteria = internals.sortRelations[0];
+                        const joinKey = `${this.tableName}.${sortCriteria.relation}_id`;
+                        const foreignKey = `${sortCriteria.relation}.id`;
+
+                        qb.distinct();
+                        qb.leftJoin(sortCriteria.relation, joinKey, foreignKey);
+                        qb.orderBy(sortCriteria.sortBy, sortCriteria.direction);
+                    }
+                })
+                .fetchAll(options);
         }
 
         // Otherwise, call `fetch` to return Model

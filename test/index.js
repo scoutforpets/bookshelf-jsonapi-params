@@ -20,7 +20,8 @@ describe('bookshelf-jsonapi-params', () => {
         client: 'sqlite3',
         connection: {
             filename: './test/test.sqlite'
-        }
+        },
+        debug: true
     }));
 
     // Create models
@@ -57,7 +58,7 @@ describe('bookshelf-jsonapi-params', () => {
 
         pets: function () {
 
-            return this.hasOne(PetModel);
+            return this.hasMany(PetModel);
         }
     });
 
@@ -115,6 +116,11 @@ describe('bookshelf-jsonapi-params', () => {
                 PetModel.forge().save({
                     id: 1,
                     name: 'Big Bird',
+                    person_id: 1
+                }),
+                PetModel.forge().save({
+                    id: 2,
+                    name: 'Elmo',
                     person_id: 1
                 })
             );
@@ -279,6 +285,44 @@ describe('bookshelf-jsonapi-params', () => {
                     done();
                 });
         });
+
+        it('should return records sorted by name ascending (relation field)', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    include: ['pets'],
+                    sort: ['pets.name']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('id')).to.equal(2);
+                    expect(result.models[1].get('id')).to.equal(3);
+                    expect(result.models[2].get('id')).to.equal(1);
+
+                    done();
+                });
+        });
+
+        it('should return records sorted by name descending (relation field)', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    include: ['pets'],
+                    sort: ['-pets.name']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('id')).to.equal(1);
+                    expect(result.models[1].get('id')).to.equal(2);
+                    expect(result.models[2].get('id')).to.equal(3);
+
+                    done();
+                });
+        });
     });
 
     describe('passing an `include` parameter', () => {
@@ -292,11 +336,7 @@ describe('bookshelf-jsonapi-params', () => {
                 }, false)
                 .then((result) => {
 
-                    const relation = result.related('pets');
-
-                    expect(result).to.be.an('object');
-                    expect(relation).to.exist;
-                    expect(relation.get('name')).to.equal('Big Bird');
+                    expect(result.related('pets').models).to.have.length(2);
                     done();
                 });
         });
@@ -315,10 +355,9 @@ describe('bookshelf-jsonapi-params', () => {
                 }, false)
                 .then((result) => {
 
-                    const relation = result.related('pets');
+                    const pets = result.related('pets').models;
+                    expect(pets).to.have.length(0);
 
-                    expect(result).to.be.an('object');
-                    expect(relation.id).to.not.exist;
                     done();
                 });
         });
