@@ -209,7 +209,11 @@ export default (Bookshelf, options = {}) => {
                 sortValues = internals.formatColumnNames(sortValues);
 
                 _forEach(sortValues, (sortBy) => {
-
+                    /**GM- localized trim of spurious '_' character
+                     * if debugging, put a breakpoint at line 248, a call to _this.format
+                     * _this is Bookshelf#Model, but the source says format() is = lodash.identity 
+                     * further investigation : http://bookshelfjs.org/docs/src_base_model.js.html#line378*/                                                  
+                    if(typeof sortBy === 'string' && sortBy.charAt(0) === '_' ){ sortBy = sortBy.substr(1); } 
                     internals.model.orderBy(sortBy, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
                 });
             }
