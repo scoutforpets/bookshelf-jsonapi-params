@@ -190,32 +190,45 @@ export default (Bookshelf, options = {}) => {
          * @param  sortValues {array}
          */
         internals.buildSort = (sortValues = []) => {
+            var sortValues = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
 
 
-            if (_isArray(sortValues) && !_isEmpty(sortValues)) {
+            if ((0, _lodash.isArray)(sortValues) && !(0, _lodash.isEmpty)(sortValues)) {
+                (function () {
 
-                let sortDesc = [];
+                    	var sortDesc = [];
 
-                for (let i = 0; i < sortValues.length; ++i) {
+                    	var relation;
 
-                    // Determine if the sort should be descending
-                    if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
-                        sortDesc.push(sortValues[i].substring(1, sortValues[i].length));
+                    	for (var i = 0; i < sortValues.length; ++i) {                        
+                        	let desc = false;
+                        // Determine if the sort should be descending
+                        	if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
+                            	sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
+                            	desc = true;                                                      
+                        }
+
+                        	if(sortValues[i].indexOf('.') !== -1){
+                            	var pair = sortValues[i].split('.');
+                            	relation = pair[0];
+                            	sortValues[i] = pair[1];
+                        }
+
+                        	if(desc){
+                            	sortDesc.push(sortValues[i]);
+                        }
                     }
-                }
 
-                // Format column names according to Model settings
-                sortDesc = internals.formatColumnNames(sortDesc);
-                sortValues = internals.formatColumnNames(sortValues);
+                    // Format column names according to Model settings
+                    	sortDesc = internals.formatColumnNames(sortDesc);
+                    	sortValues = internals.formatColumnNames(sortValues);
 
-                _forEach(sortValues, (sortBy) => {
-                    /**GM- localized trim of spurious '_' character
-                     * if debugging, put a breakpoint at line 248, a call to _this.format
-                     * _this is Bookshelf#Model, but the source says format() is = lodash.identity 
-                     * further investigation : http://bookshelfjs.org/docs/src_base_model.js.html#line378*/                                                  
-                    if(typeof sortBy === 'string' && sortBy.charAt(0) === '_' ){ sortBy = sortBy.substr(1); } 
-                    internals.model.orderBy(sortBy, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
-                });
+                    	(0, _lodash.forEach)(sortValues, function (sortBy) {                        
+                        	var complexCol = sortBy;
+                        	if(relation){ complexCol = relation + '.' + sortBy; };
+                        	internals.model.orderBy(complexCol, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
+                    });
+                })();
             }
         };
 
