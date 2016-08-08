@@ -195,13 +195,26 @@ export default (Bookshelf, options = {}) => {
             if (_isArray(sortValues) && !_isEmpty(sortValues)) {
 
                 let sortDesc = [];
+                
+                var relation;
 
-                for (let i = 0; i < sortValues.length; ++i) {
+              	for (var i = 0; i < sortValues.length; ++i) {                        
+                	let desc = false;
+                // Determine if the sort should be descending
+                	if (typeof sortValues[i] === 'string' && (sortValues[i][0] === '-' || sortValues[i][0] === '_')) {
+                    	sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
+                    	desc = true;
+                	}
+                }
 
-                    // Determine if the sort should be descending
-                    if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
-                        sortDesc.push(sortValues[i].substring(1, sortValues[i].length));
-                    }
+                if(sortValues[i].indexOf('.') !== -1){
+                    	var pair = sortValues[i].split('.');
+                    	relation = pair[0];
+                    	sortValues[i] = pair[1];
+                }
+
+                if(desc){
+                    	sortDesc.push(sortValues[i]);
                 }
 
                 // Format column names according to Model settings
@@ -209,8 +222,9 @@ export default (Bookshelf, options = {}) => {
                 sortValues = internals.formatColumnNames(sortValues);
 
                 _forEach(sortValues, (sortBy) => {
-
-                    internals.model.orderBy(sortBy, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
+                    var complexCol = sortBy;
+                	if(relation){ complexCol = relation + '.' + sortBy; };
+                	internals.model.orderBy(complexCol, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
                 });
             }
         };

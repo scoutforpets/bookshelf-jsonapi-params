@@ -7,8 +7,9 @@
     "mocha": "--compilers js:babel-core/register --bail test"
   },
   "scripts": {
-    "build": "babel -q -L -D ./src/ --out-dir ./dist/",
-    "prepublish": "npm run clean && npm run build",
+    "build": "./node_modules/.bin/babel -q -L -D ./src/ --out-dir ./dist/",
+    "install": "npm run build",
+    "prepublish": "npm run clean",
     "test": "./node_modules/.bin/mocha $npm_package_options_mocha",
     "clean": "rm -rf dist/"
   },
@@ -33,7 +34,7 @@
   },
   "homepage": "https://github.com/scoutforpets/bookshelf-jsonapi-params",
   "devDependencies": {
-    "babel": "6.5.2",
+
     "babel-cli": "6.9.0",
     "babel-core": "6.9.1",
     "babel-plugin-add-module-exports": "0.2.1",
