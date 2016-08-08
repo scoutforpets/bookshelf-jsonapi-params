@@ -9,7 +9,7 @@
   "scripts": {
     "build": "type babel &&  babel -q -L -D ./src/ --out-dir ./dist/",
     "install": "npm run build",
-    "prepublish": "npm run clean && npm run build",
+    "prepublish": "npm run clean",
     "test": "./node_modules/.bin/mocha $npm_package_options_mocha",
     "clean": "rm -rf dist/"
   },
