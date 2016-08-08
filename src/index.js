@@ -190,45 +190,41 @@ export default (Bookshelf, options = {}) => {
          * @param  sortValues {array}
          */
         internals.buildSort = (sortValues = []) => {
-            var sortValues = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
 
 
-            if ((0, _lodash.isArray)(sortValues) && !(0, _lodash.isEmpty)(sortValues)) {
-                (function () {
+            if (_isArray(sortValues) && !_isEmpty(sortValues)) {
 
-                    	var sortDesc = [];
+                let sortDesc = [];
+                
+                var relation;
 
-                    	var relation;
+              	for (var i = 0; i < sortValues.length; ++i) {                        
+                	let desc = false;
+                // Determine if the sort should be descending
+                	if (typeof sortValues[i] === 'string' && (sortValues[i][0] === '-' || sortValues[i][0] === '_')) {
+                    	sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
+                    	desc = true;                                                      
+                }
 
-                    	for (var i = 0; i < sortValues.length; ++i) {                        
-                        	let desc = false;
-                        // Determine if the sort should be descending
-                        	if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
-                            	sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
-                            	desc = true;                                                      
-                        }
+                if(sortValues[i].indexOf('.') !== -1){
+                    	var pair = sortValues[i].split('.');
+                    	relation = pair[0];
+                    	sortValues[i] = pair[1];
+                }
 
-                        	if(sortValues[i].indexOf('.') !== -1){
-                            	var pair = sortValues[i].split('.');
-                            	relation = pair[0];
-                            	sortValues[i] = pair[1];
-                        }
+                if(desc){
+                    	sortDesc.push(sortValues[i]);
+                }
 
-                        	if(desc){
-                            	sortDesc.push(sortValues[i]);
-                        }
-                    }
+                // Format column names according to Model settings
+                sortDesc = internals.formatColumnNames(sortDesc);
+                sortValues = internals.formatColumnNames(sortValues);
 
-                    // Format column names according to Model settings
-                    	sortDesc = internals.formatColumnNames(sortDesc);
-                    	sortValues = internals.formatColumnNames(sortValues);
-
-                    	(0, _lodash.forEach)(sortValues, function (sortBy) {                        
-                        	var complexCol = sortBy;
-                        	if(relation){ complexCol = relation + '.' + sortBy; };
-                        	internals.model.orderBy(complexCol, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
-                    });
-                })();
+                _forEach(sortValues, (sortBy) => {
+                    var complexCol = sortBy;
+                	if(relation){ complexCol = relation + '.' + sortBy; };
+                	internals.model.orderBy(complexCol, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
+                });
             }
         };
 
