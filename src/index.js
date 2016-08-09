@@ -189,29 +189,51 @@ export default (Bookshelf, options = {}) => {
          * Build a query based on the `sort` parameter.
          * @param  sortValues {array}
          */
-        internals.buildSort = (sortValues = []) => {
-
+        internals.buildSort = function () {
+            var sortValues = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
 
             if (_isArray(sortValues) && !_isEmpty(sortValues)) {
+                	(function () {
 
-                let sortDesc = [];
+                    	var sortDesc = [];
 
-                for (let i = 0; i < sortValues.length; ++i) {
+                    	var relations = [];
 
-                    // Determine if the sort should be descending
-                    if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
-                        sortDesc.push(sortValues[i].substring(1, sortValues[i].length));
-                    }
-                }
+                    	for (var i = 0; i < sortValues.length; ++i) {                        
+                        	var desc = false;
+                        // Determine if the sort should be descending
+                        	if (typeof sortValues[i] === 'string' && (sortValues[i][0] === '-' || sortValues[i][0] === '_')) {
+                            	sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
+                            	desc = true;
+                            }                                                      
+                        
 
-                // Format column names according to Model settings
-                sortDesc = internals.formatColumnNames(sortDesc);
-                sortValues = internals.formatColumnNames(sortValues);
+                            if(sortValues[i].indexOf('.') !== -1){
+                            	var pair = sortValues[i].split('.');
+                            	relations.push( pair[0] );
+                            	sortValues[i] = pair[1];
+                            } else {
+								relations.push('');
+							}
 
-                _forEach(sortValues, (sortBy) => {
+                            if(desc){
+                            	sortDesc.push(sortValues[i]);
+                            }
+                        }
+                    
 
-                    internals.model.orderBy(sortBy, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
-                });
+                    // Format column names according to Model settings
+                    	sortDesc = internals.formatColumnNames(sortDesc);
+                    	sortValues = internals.formatColumnNames(sortValues);
+
+                    	_forEach(sortValues, function (sortBy, idx) {
+                        	var column = sortBy;
+                        	if(relations[idx] !== ''){
+								 column = relations[idx] + '.' + sortBy; 
+							};
+                        	internals.model.orderBy(column, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
+                    });
+                })();
             }
         };
 
