@@ -58,7 +58,8 @@ export default (Bookshelf, options = {}) => {
         opts = opts || {};
 
         const internals = {};
-        const { include, fields, sort, page = {}, filter } = opts;
+        const { include, fields, sort, page = {}, filter, filterType = {} } = opts;
+        const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte']
 
         // Get a reference to the field being used as the id
         internals.idAttribute = this.constructor.prototype.idAttribute ?
@@ -140,6 +141,73 @@ export default (Bookshelf, options = {}) => {
 
                         qb.whereIn.apply(qb, [key, value]);
                     });
+                });
+            }
+        };
+
+        /**
+         * Build a query based on the `filtersType` parameter.
+         * @param  filterTypeValues {object|array}
+         */
+        internals.buildFiltersType = (filterTypeValues) => {
+            if (_isObjectLike(filterTypeValues) && !_isEmpty(filterTypeValues)) {
+
+                // format the column names of the filters
+                filterTypeValues = this.format(filterTypeValues);
+
+                // build the filter query
+                internals.model.query((qb) => {
+                    
+                    // Loop through each filter type
+                    _forEach(filterTypeValues, (obj, type) => {
+
+                        // Check if filter type is valid
+                        if(_isObjectLike(obj) && _includes(filterTypes, type)){
+
+                            // Loop through each value for the valid filter type
+                            _forEach(obj, (value, key) => {
+                            
+                                // Determine if there are multiple filters to be applied
+                                let valueArray = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
+
+                                // Attach different query for each type
+                                if(type === 'like'){
+                                    if(_isArray(valueArray)){
+                                        qb.where((qbWhere) => {
+                                            _forEach(valueArray, (val, index) => {
+                                                val = `%${val}%`;
+                                                if(index === 0){
+                                                    qbWhere.where(key, 'like', val);
+                                                }
+                                                else{
+                                                    qbWhere.orWhere(key, 'like', val);
+                                                }
+                                            })
+                                        })
+                                    }
+                                    else{
+                                        qb.where(key, 'like', `%${value}%`);
+                                    }
+                                }
+                                else if(type === 'not'){
+                                    qb.whereNotIn.apply(qb, [key, valueArray]);
+                                }
+                                else if(type === 'lt'){
+                                    qb.where(key, '<', value);
+                                }
+                                else if(type === 'gt'){
+                                    qb.where(key, '>', value);
+                                }
+                                else if(type === 'lte'){
+                                    qb.where(key, '<=', value);
+                                }
+                                else if(type === 'gte'){
+                                    qb.where(key, '>=', value);
+                                }
+                            });
+                        }
+                    });
+    
                 });
             }
         };
@@ -312,6 +380,9 @@ export default (Bookshelf, options = {}) => {
 
         // Apply filters
         internals.buildFilters(filter);
+
+        // Apply filter types
+        internals.buildFiltersType(filterType);
 
         // Apply sorting
         internals.buildSort(sort);
