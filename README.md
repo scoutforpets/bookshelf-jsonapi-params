@@ -1,4 +1,4 @@
-# bookshelf-jsonapi-params my copy
+# bookshelf-jsonapi-params
 [![Build Status](https://travis-ci.org/scoutforpets/bookshelf-jsonapi-params.svg?branch=master)](https://travis-ci.org/scoutforpets/bookshelf-jsonapi-params) [![npm version](https://badge.fury.io/js/bookshelf-jsonapi-params.svg)](https://badge.fury.io/js/bookshelf-jsonapi-params) [![npm version](https://david-dm.org/scoutforpets/bookshelf-jsonapi-params.svg)](https://david-dm.org/scoutforpets/bookshelf-jsonapi-params)
 
 The [JSON API spec](https://jsonapi.org/format) defines standard parameters to be used when refining result sets via filtering, sparse fieldsets, paging, etc. This [Bookshelf.js](https://github.com/tgriesser/bookshelf) plugin adds a method to your models that can be called to automatically refine the results of your queries based on the aforementioned parameters.
@@ -82,6 +82,7 @@ If you're returning a single resource from a call such as `GET /customers/1`, ma
 `options`    | Description
 :------------- | :-------------
 filter _object_  | Filters a result set based specific field. Example: `/pets?filter[name]=max` would only return pets named max.
+filterType _object_  | Filters a result set based specific field and specified type. Example: `/pets?filterType[like][pet]=ax` would only return pets that have "ax" in their name. The supported types are "like", "not", "lt", "lte", "gt", and "gte". Both "like" and "not" support multiple values by comma separation. NOTE: This is not supported by JSON API spec.
 fields _object_   | Limits the fields returned as part of the record. Example: `/pets?fields[pets]=name` would return pet records with only the name field rather than every field.
 include _array_  | Returns relationships as part of the payload. Example: `/pets?include=owner` would return the pet record in addition to the full record of its owner. _Note:_ you may override an `include` parameter with your own Knex function rather than just a string representing the relationship name.
 page _object/false_  | Paginates the result set. Example: `/pets?page[limit]=25&page[offset]=0` would return the first 25 records. If you've passed default pagination parameters to the plugin, but would like to disable paging on a specific call, just set `page` to `false`.

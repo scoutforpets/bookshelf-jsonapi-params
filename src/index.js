@@ -59,7 +59,7 @@ export default (Bookshelf, options = {}) => {
 
         const internals = {};
         const { include, fields, sort, page = {}, filter, filterType = {} } = opts;
-        const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte']
+        const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte'];
 
         // Get a reference to the field being used as the id
         internals.idAttribute = this.constructor.prototype.idAttribute ?
@@ -150,6 +150,7 @@ export default (Bookshelf, options = {}) => {
          * @param  filterTypeValues {object|array}
          */
         internals.buildFiltersType = (filterTypeValues) => {
+
             if (_isObjectLike(filterTypeValues) && !_isEmpty(filterTypeValues)) {
 
                 // format the column names of the filters
@@ -157,57 +158,58 @@ export default (Bookshelf, options = {}) => {
 
                 // build the filter query
                 internals.model.query((qb) => {
-                    
+
                     // Loop through each filter type
-                    _forEach(filterTypeValues, (obj, type) => {
+                    _forEach(filterTypeValues, (obj, queryType) => {
 
                         // Check if filter type is valid
-                        if(_isObjectLike(obj) && _includes(filterTypes, type)){
+                        if (_isObjectLike(obj) && _includes(filterTypes, queryType)){
 
                             // Loop through each value for the valid filter type
                             _forEach(obj, (value, key) => {
-                            
+
                                 // Determine if there are multiple filters to be applied
-                                let valueArray = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
+                                const valueArray = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
 
                                 // Attach different query for each type
-                                if(type === 'like'){
-                                    if(_isArray(valueArray)){
+                                if (queryType === 'like'){
+                                    if (_isArray(valueArray)){
                                         qb.where((qbWhere) => {
+
                                             _forEach(valueArray, (val, index) => {
+
                                                 val = `%${val}%`;
-                                                if(index === 0){
+                                                if (index === 0){
                                                     qbWhere.where(key, 'like', val);
                                                 }
-                                                else{
+                                                else {
                                                     qbWhere.orWhere(key, 'like', val);
                                                 }
-                                            })
-                                        })
+                                            });
+                                        });
                                     }
-                                    else{
+                                    else {
                                         qb.where(key, 'like', `%${value}%`);
                                     }
                                 }
-                                else if(type === 'not'){
+                                else if (queryType === 'not'){
                                     qb.whereNotIn.apply(qb, [key, valueArray]);
                                 }
-                                else if(type === 'lt'){
+                                else if (queryType === 'lt'){
                                     qb.where(key, '<', value);
                                 }
-                                else if(type === 'gt'){
+                                else if (queryType === 'gt'){
                                     qb.where(key, '>', value);
                                 }
-                                else if(type === 'lte'){
+                                else if (queryType === 'lte'){
                                     qb.where(key, '<=', value);
                                 }
-                                else if(type === 'gte'){
+                                else if (queryType === 'gte'){
                                     qb.where(key, '>=', value);
                                 }
                             });
                         }
                     });
-    
                 });
             }
         };
@@ -258,48 +260,49 @@ export default (Bookshelf, options = {}) => {
          * @param  sortValues {array}
          */
         internals.buildSort = function () {
-            var sortValues = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+
+            let sortValues = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
 
             if (_isArray(sortValues) && !_isEmpty(sortValues)) {
-                	(function () {
+                (function () {
 
-                    	var sortDesc = [];
+                    let sortDesc = [];
 
-                    	var relations = [];
+                    const relations = [];
 
-                    	for (var i = 0; i < sortValues.length; ++i) {                        
-                        	var desc = false;
+                    for (let i = 0; i < sortValues.length; ++i) {
+                        let desc = false;
                         // Determine if the sort should be descending
-                        	if (typeof sortValues[i] === 'string' && (sortValues[i][0] === '-' || sortValues[i][0] === '_')) {
-                            	sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
-                            	desc = true;
-                            }                                                      
-                        
-
-                            if(sortValues[i].indexOf('.') !== -1){
-                            	var pair = sortValues[i].split('.');
-                            	relations.push( pair[0] );
-                            	sortValues[i] = pair[1];
-                            } else {
-								relations.push('');
-							}
-
-                            if(desc){
-                            	sortDesc.push(sortValues[i]);
-                            }
+                        if (typeof sortValues[i] === 'string' && (sortValues[i][0] === '-' || sortValues[i][0] === '_')) {
+                            sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
+                            desc = true;
                         }
-                    
+
+                        if (sortValues[i].indexOf('.') !== -1){
+                            relations.push( sortValues[i].split('.') );
+                            sortValues[i] = pair[1];
+                        }
+                        else {
+                            relations.push('');
+                        }
+
+                        if (desc){
+                            sortDesc.push(sortValues[i]);
+                        }
+                    }
+
 
                     // Format column names according to Model settings
-                    	sortDesc = internals.formatColumnNames(sortDesc);
-                    	sortValues = internals.formatColumnNames(sortValues);
+                    sortDesc = internals.formatColumnNames(sortDesc);
+                    sortValues = internals.formatColumnNames(sortValues);
 
-                    	_forEach(sortValues, function (sortBy, idx) {
-                        	var column = sortBy;
-                        	if(relations[idx] !== ''){
-								 column = relations[idx] + '.' + sortBy; 
-							};
-                        	internals.model.orderBy(column, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
+                    _forEach(sortValues, (sortBy, idx) => {
+
+                        let column = sortBy;
+                        if (relations[idx] !== ''){
+                            column = relations[idx] + '.' + sortBy;
+                        };
+                        internals.model.orderBy(column, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
                     });
                 })();
             }
