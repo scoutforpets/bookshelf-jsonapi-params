@@ -259,52 +259,30 @@ export default (Bookshelf, options = {}) => {
          * Build a query based on the `sort` parameter.
          * @param  sortValues {array}
          */
-        internals.buildSort = function () {
+        internals.buildSort = (sortValues = []) => {
 
-            let sortValues = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
 
             if (_isArray(sortValues) && !_isEmpty(sortValues)) {
-                (function () {
 
-                    let sortDesc = [];
+                let sortDesc = [];
 
-                    const relations = [];
+                for (let i = 0; i < sortValues.length; ++i) {
 
-                    for (let i = 0; i < sortValues.length; ++i) {
-                        let desc = false;
-                        // Determine if the sort should be descending
-                        if (typeof sortValues[i] === 'string' && (sortValues[i][0] === '-' || sortValues[i][0] === '_')) {
-                            sortValues[i] = sortValues[i].substring(1, sortValues[i].length);
-                            desc = true;
-                        }
-
-                        if (sortValues[i].indexOf('.') !== -1){
-                            relations.push( sortValues[i].split('.') );
-                            sortValues[i] = pair[1];
-                        }
-                        else {
-                            relations.push('');
-                        }
-
-                        if (desc){
-                            sortDesc.push(sortValues[i]);
-                        }
+                    // Determine if the sort should be descending
+                    if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
+                        sortValues[i] = sortValues[i].substring(1);
+                        sortDesc.push(sortValues[i]);
                     }
+                }
 
+                // Format column names according to Model settings
+                sortDesc = internals.formatColumnNames(sortDesc);
+                sortValues = internals.formatColumnNames(sortValues);
 
-                    // Format column names according to Model settings
-                    sortDesc = internals.formatColumnNames(sortDesc);
-                    sortValues = internals.formatColumnNames(sortValues);
+                _forEach(sortValues, (sortBy) => {
 
-                    _forEach(sortValues, (sortBy, idx) => {
-
-                        let column = sortBy;
-                        if (relations[idx] !== ''){
-                            column = relations[idx] + '.' + sortBy;
-                        };
-                        internals.model.orderBy(column, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
-                    });
-                })();
+                    internals.model.orderBy(sortBy, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
+                });
             }
         };
 
