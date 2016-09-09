@@ -180,16 +180,22 @@ export default (Bookshelf, options = {}) => {
 
                                                 val = `%${val}%`;
                                                 if (index === 0){
-                                                    qbWhere.where(key, 'like', val);
+                                                    qbWhere.where(
+                                                        Bookshelf.knex.raw(`LOWER(${key}) like LOWER(?)`, [val])
+                                                    );
                                                 }
                                                 else {
-                                                    qbWhere.orWhere(key, 'like', val);
+                                                    qbWhere.orWhere(
+                                                        Bookshelf.knex.raw(`LOWER(${key}) like LOWER(?)`, [val])
+                                                    );
                                                 }
                                             });
                                         });
                                     }
                                     else {
-                                        qb.where(key, 'like', `%${value}%`);
+                                        qb.where(
+                                            Bookshelf.knex.raw(`LOWER(${key}) like LOWER(?)`, [`%${value}%`])
+                                        );
                                     }
                                 }
                                 else if (queryType === 'not'){
