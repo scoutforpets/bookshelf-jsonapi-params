@@ -9,6 +9,7 @@ import {
     isArray as _isArray,
     isObject as _isObject,
     isObjectLike as _isObjectLike,
+    forIn as _forIn,
     keys as _keys,
     map as _map,
     zipObject as _zipObject
@@ -81,6 +82,7 @@ export default (Bookshelf, options = {}) => {
         internals.buildDependencies = (filterValues, sortValues) => {
 
             const relationHash = {};
+            // Find relations in fitlerValues
             if (_isObjectLike(filterValues) && !_isEmpty(filterValues)){
 
                 // Loop through each filter value
@@ -102,6 +104,28 @@ export default (Bookshelf, options = {}) => {
                     }
                 });
             }
+
+            // Find relations in sortValues
+            if (_isObjectLike(sortValues) && !_isEmpty(sortValues)){
+
+                // Loop through each sort value
+                _forEach(sortValues, (value) => {
+
+                    // If the sort value is descending, remove the dash
+                    if (value.startsWith('-')){
+                        value = value.substr(1);
+                    }
+                    // Add relations to the relationHash
+                    internals.buildDependenciesHelper(value, relationHash);
+                });
+            }
+
+            // Add left outerjoins to the query for each relationship
+            // TODO: will need to to recursion
+            _forIn(relationHash, (value, key, object) => {
+
+                console.log(key);
+            });
             console;
         };
 
@@ -118,14 +142,20 @@ export default (Bookshelf, options = {}) => {
                 if (!_has(relationHash, key)){
                     let level = relationHash;
                     const relations = key.split('.');
+                    let relationModel = this.clone();
+
+                    // Traverse the relationHash object and set new relation if it does not exist
                     _forEach(relations, (relation) => {
 
-                        // Check if valid relationship, TODO: must save previous relation to check current relation
-                        if (internals.isBelongsToRelation(relation) || internals.isManyRelation(relation)){
+                        // Check if valid relationship
+                        if (internals.isBelongsToRelation(relation, relationModel) || internals.isManyRelation(relation, relationModel)){
                             if (!level[relation]){
                                 level[relation] = {};
                             }
                             level = level[relation];
+
+                            // Set relation model to the next item in the chain
+                            relationModel = relationModel.related(relation);
                         }
                     });
                 }
@@ -167,7 +197,7 @@ export default (Bookshelf, options = {}) => {
 
                                 const relationId = `${relation}_id`;
 
-                                if (!internals.isManyRelation(relation) &&
+                                if (!internals.isManyRelation(relation, model) &&
                                     !_includes(fieldNames[relation], relationId)) {
 
                                     qb.column.apply(qb, [relationId]);
@@ -286,7 +316,7 @@ export default (Bookshelf, options = {}) => {
 
                                 const relationId = `${internals.modelName}_id`;
 
-                                if (!internals.isBelongsToRelation(relation) &&
+                                if (!internals.isBelongsToRelation(relation, this) &&
                                     !_includes(fieldNames[relation], relationId)) {
 
                                     qb.column.apply(qb, [relationId]);
@@ -372,12 +402,16 @@ export default (Bookshelf, options = {}) => {
 
         /**
          * Determines if the specified relation is a `belongsTo` type.
-         * @param  relationName {string}
-         * @return {boolean}
+         * @param   relationName {string}
+         * @param   model {object}
+         * @return  {boolean}
          */
-        internals.isBelongsToRelation = (relationName) => {
+        internals.isBelongsToRelation = (relationName, model) => {
 
-            const relationType = this.related(relationName).relatedData.type.toLowerCase();
+            if (!model.related(relationName)){
+                return false;
+            }
+            const relationType = model.related(relationName).relatedData.type.toLowerCase();
 
             if (relationType !== undefined &&
                 relationType === 'belongsto') {
@@ -390,12 +424,16 @@ export default (Bookshelf, options = {}) => {
 
         /**
          * Determines if the specified relation is a `many` type.
-         * @param  relationName {string}
-         * @return {boolean}
+         * @param   relationName {string}
+         * @param   model {object}
+         * @return  {boolean}
          */
-        internals.isManyRelation = (relationName) => {
+        internals.isManyRelation = (relationName, model) => {
 
-            const relationType = this.related(relationName).relatedData.type.toLowerCase();
+            if (!model.related(relationName)){
+                return false;
+            }
+            const relationType = model.related(relationName).relatedData.type.toLowerCase();
 
             if (relationType !== undefined &&
                 relationType.indexOf('many') > 0) {
