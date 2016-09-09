@@ -79,6 +79,7 @@ describe('bookshelf-jsonapi-params', () => {
 
                     table.increments('id').primary();
                     table.string('first_name');
+                    table.integer('age');
                     table.string('gender');
                     table.string('type');
                 }),
@@ -96,12 +97,14 @@ describe('bookshelf-jsonapi-params', () => {
                 PersonModel.forge().save({
                     id: 1,
                     firstName: 'Barney',
+                    age: 12,
                     gender: 'm',
                     type: 't-rex'
                 }),
                 PersonModel.forge().save({
                     id: 2,
                     firstName: 'Baby Bop',
+                    age: 25,
                     gender: 'f',
                     type: 'triceratops'
 
@@ -109,6 +112,7 @@ describe('bookshelf-jsonapi-params', () => {
                 PersonModel.forge().save({
                     id: 3,
                     firstName: 'Cookie Monster',
+                    age: 70,
                     gender: 'm',
                     type: 'monster'
                 }),
@@ -213,6 +217,212 @@ describe('bookshelf-jsonapi-params', () => {
                 .then((result) => {
 
                     expect(result.models).to.have.length(2);
+                    done();
+                });
+        });
+    });
+
+    describe('passing a `filter[like]` parameter with a single filter', () => {
+
+        it('should return all records that partially matches filter[like]', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        like: {
+                            first_name: 'Ba'
+                        }
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('firstName')).to.equal('Barney');
+                    expect(result.models[1].get('firstName')).to.equal('Baby Bop');
+                    done();
+                });
+        });
+    });
+
+    describe('passing a `filter[like]` parameter with multiple filters', () => {
+
+        it('should return all records that partially matches both filter[like]', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        like: {
+                            first_name: 'op,coo'
+                        }
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('firstName')).to.equal('Baby Bop');
+                    expect(result.models[1].get('firstName')).to.equal('Cookie Monster');
+                    done();
+                });
+        });
+    });
+
+    describe('passing a `filter[not]` parameter with a single filter', () => {
+
+        it('should return all records that do not match filter[not]', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        not: {
+                            first_name: 'Barney'
+                        }
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('firstName')).to.equal('Baby Bop');
+                    expect(result.models[1].get('firstName')).to.equal('Cookie Monster');
+                    done();
+                });
+        });
+    });
+
+    describe('passing a `filter[not]` parameter with multiple filters', () => {
+
+        it('should return all records that do not match filter[not]', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        not: {
+                            first_name: 'Barney,Baby Bop'
+                        }
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                    done();
+                });
+        });
+    });
+
+    describe('passing a `filter[lt]` parameter', () => {
+
+        it('should return all records that are less than filter[lt]', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        lt: {
+                            age: 25
+                        }
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('firstName')).to.equal('Barney');
+                    done();
+                });
+        });
+    });
+
+    describe('passing a `filter[lte]` parameter', () => {
+
+        it('should return all records that are less than or equal to filter[lte]', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        lte: {
+                            age: 25
+                        }
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('firstName')).to.equal('Barney');
+                    expect(result.models[1].get('firstName')).to.equal('Baby Bop');
+                    done();
+                });
+        });
+    });
+
+    describe('passing a `filter[gt]` parameter', () => {
+
+        it('should return all records that are greater than filter[gt]', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        gt: {
+                            age: 25
+                        }
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                    done();
+                });
+        });
+    });
+
+    describe('passing a `filter[gte]` parameter', () => {
+
+        it('should return all records that are greater than or equal to filter[gte]', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        gte: {
+                            age: 25
+                        }
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('firstName')).to.equal('Baby Bop');
+                    expect(result.models[1].get('firstName')).to.equal('Cookie Monster');
+                    done();
+                });
+        });
+    });
+
+    describe('passing a `filter[gte]` and `filter[like]` parameter', () => {
+
+        it('should return all records that are greater than or equal to filter[gte] and a partial match to filter[like]', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        gte: {
+                            age: 25
+                        },
+                        like: {
+                            first_name: 'a'
+                        }
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('firstName')).to.equal('Baby Bop');
                     done();
                 });
         });

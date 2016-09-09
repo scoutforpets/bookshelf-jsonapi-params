@@ -59,6 +59,7 @@ export default (Bookshelf, options = {}) => {
 
         const internals = {};
         const { include, fields, sort, page = {}, filter } = opts;
+        const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte'];
 
         // Get a reference to the field being used as the id
         internals.idAttribute = this.constructor.prototype.idAttribute ?
@@ -135,10 +136,71 @@ export default (Bookshelf, options = {}) => {
 
                     _forEach(filterValues, (value, key) => {
 
-                        // Determine if there are multiple filters to be applied
-                        value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
+                        // If the value is a filter type
+                        if (_isObjectLike(value)){
+                            // Format column names of filter types
+                            const filterTypeValues = this.format(value);
 
-                        qb.whereIn.apply(qb, [key, value]);
+                            // Check if filter type is valid
+                            if (_includes(filterTypes, key)){
+                                // Loop through each value for the valid filter type
+                                _forEach(filterTypeValues, (typeValue, typeKey) => {
+
+                                    // Determine if there are multiple filters to be applied
+                                    const valueArray = typeValue.toString().indexOf(',') !== -1 ? typeValue.split(',') : typeValue;
+
+                                    // Attach different query for each type
+                                    if (key === 'like'){
+                                        if (_isArray(valueArray)){
+                                            qb.where((qbWhere) => {
+
+                                                _forEach(valueArray, (val, index) => {
+
+                                                    val = `%${val}%`;
+                                                    if (index === 0){
+                                                        qbWhere.where(
+                                                            Bookshelf.knex.raw(`LOWER(${typeKey}) like LOWER(?)`, [val])
+                                                        );
+                                                    }
+                                                    else {
+                                                        qbWhere.orWhere(
+                                                            Bookshelf.knex.raw(`LOWER(${typeKey}) like LOWER(?)`, [val])
+                                                        );
+                                                    }
+                                                });
+                                            });
+                                        }
+                                        else {
+                                            qb.where(
+                                                Bookshelf.knex.raw(`LOWER(${typeKey}) like LOWER(?)`, [`%${typeValue}%`])
+                                            );
+                                        }
+                                    }
+                                    else if (key === 'not'){
+                                        qb.whereNotIn.apply(qb, [typeKey, valueArray]);
+                                    }
+                                    else if (key === 'lt'){
+                                        qb.where(typeKey, '<', typeValue);
+                                    }
+                                    else if (key === 'gt'){
+                                        qb.where(typeKey, '>', typeValue);
+                                    }
+                                    else if (key === 'lte'){
+                                        qb.where(typeKey, '<=', typeValue);
+                                    }
+                                    else if (key === 'gte'){
+                                        qb.where(typeKey, '>=', typeValue);
+                                    }
+                                });
+                            }
+                        }
+                        // If the value is an equality filter
+                        else {
+                            // Determine if there are multiple filters to be applied
+                            value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
+
+                            qb.whereIn.apply(qb, [key, value]);
+                        }
                     });
                 });
             }
@@ -200,7 +262,8 @@ export default (Bookshelf, options = {}) => {
 
                     // Determine if the sort should be descending
                     if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
-                        sortDesc.push(sortValues[i].substring(1, sortValues[i].length));
+                        sortValues[i] = sortValues[i].substring(1);
+                        sortDesc.push(sortValues[i]);
                     }
                 }
 
