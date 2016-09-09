@@ -222,14 +222,14 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
-    describe('passing a `filtersType[like]` parameter with a single filter', () => {
+    describe('passing a `filter[like]` parameter with a single filter', () => {
 
-        it('should return all records that partially matches filterType[like]', (done) => {
+        it('should return all records that partially matches filter[like]', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    filterType: {
+                    filter: {
                         like: {
                             first_name: 'Ba'
                         }
@@ -245,14 +245,14 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
-    describe('passing a `filtersType[like]` parameter with multiple filters', () => {
+    describe('passing a `filter[like]` parameter with multiple filters', () => {
 
-        it('should return all records that partially matches both filterType[like]', (done) => {
+        it('should return all records that partially matches both filter[like]', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    filterType: {
+                    filter: {
                         like: {
                             first_name: 'op,coo'
                         }
@@ -268,14 +268,14 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
-    describe('passing a `filtersType[not]` parameter with a single filter', () => {
+    describe('passing a `filter[not]` parameter with a single filter', () => {
 
-        it('should return all records that do not match filtersType[not]', (done) => {
+        it('should return all records that do not match filter[not]', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    filterType: {
+                    filter: {
                         not: {
                             first_name: 'Barney'
                         }
@@ -291,14 +291,14 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
-    describe('passing a `filtersType[not]` parameter with multiple filters', () => {
+    describe('passing a `filter[not]` parameter with multiple filters', () => {
 
-        it('should return all records that do not match filtersType[not]', (done) => {
+        it('should return all records that do not match filter[not]', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    filterType: {
+                    filter: {
                         not: {
                             first_name: 'Barney,Baby Bop'
                         }
@@ -313,14 +313,14 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
-    describe('passing a `filtersType[lt]` parameter', () => {
+    describe('passing a `filter[lt]` parameter', () => {
 
-        it('should return all records that are less than filtersType[lt]', (done) => {
+        it('should return all records that are less than filter[lt]', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    filterType: {
+                    filter: {
                         lt: {
                             age: 25
                         }
@@ -335,14 +335,14 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
-    describe('passing a `filtersType[lte]` parameter', () => {
+    describe('passing a `filter[lte]` parameter', () => {
 
-        it('should return all records that are less than or equal to filtersType[lte]', (done) => {
+        it('should return all records that are less than or equal to filter[lte]', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    filterType: {
+                    filter: {
                         lte: {
                             age: 25
                         }
@@ -358,14 +358,14 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
-    describe('passing a `filtersType[gt]` parameter', () => {
+    describe('passing a `filter[gt]` parameter', () => {
 
-        it('should return all records that are greater than filtersType[gt]', (done) => {
+        it('should return all records that are greater than filter[gt]', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    filterType: {
+                    filter: {
                         gt: {
                             age: 25
                         }
@@ -380,14 +380,14 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
-    describe('passing a `filtersType[gte]` parameter', () => {
+    describe('passing a `filter[gte]` parameter', () => {
 
-        it('should return all records that are greater than or equal to filtersType[gte]', (done) => {
+        it('should return all records that are greater than or equal to filter[gte]', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    filterType: {
+                    filter: {
                         gte: {
                             age: 25
                         }
@@ -403,14 +403,14 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
-    describe('passing a `filtersType[gte]` and `filtersType[like]` parameter', () => {
+    describe('passing a `filter[gte]` and `filter[like]` parameter', () => {
 
-        it('should return all records that are greater than or equal to filtersType[gte] and a partial match to filterType[like]', (done) => {
+        it('should return all records that are greater than or equal to filter[gte] and a partial match to filter[like]', (done) => {
 
             PersonModel
                 .forge()
                 .fetchJsonApi({
-                    filterType: {
+                    filter: {
                         gte: {
                             age: 25
                         },
