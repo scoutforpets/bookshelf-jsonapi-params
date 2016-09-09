@@ -74,6 +74,65 @@ export default (Bookshelf, options = {}) => {
             this.constructor.forge().query((qb) => _assign(qb, this.query().clone()));
 
         /**
+         * Build a query for relational dependencies of filtering and sorting
+         * @param   filterValues {object}
+         * @param   sortValues {object}
+         */
+        internals.buildDependencies = (filterValues, sortValues) => {
+
+            const relationHash = {};
+            if (_isObjectLike(filterValues) && !_isEmpty(filterValues)){
+
+                // Loop through each filter value
+                _forEach(filterValues, (value, key) => {
+
+                    // If the filter is not an equality filter
+                    if (_isObjectLike(value)){
+                        if (!_isEmpty(value)){
+                            _forEach(value, (typeValue, typeKey) => {
+
+                                // Add relations to the relationHash
+                                internals.buildDependenciesHelper(typeKey, relationHash);
+                            });
+                        }
+                    }
+                    // If the filter is an equality filter
+                    else {
+                        internals.buildDependenciesHelper(key, relationHash);
+                    }
+                });
+            }
+            console;
+        };
+
+        /**
+         * Adds relations included in the key to the relationHash
+         * @param   key {string}
+         * @param   relationHash {object}
+         */
+        internals.buildDependenciesHelper = (key, relationHash) => {
+
+            if (_includes(key, '.')){
+                // The last item in the chain is a column name, not a table. Do not include column name in relationHash
+                key = key.substring(0, key.lastIndexOf('.'));
+                if (!_has(relationHash, key)){
+                    let level = relationHash;
+                    const relations = key.split('.');
+                    _forEach(relations, (relation) => {
+
+                        // Check if valid relationship, TODO: must save previous relation to check current relation
+                        if (internals.isBelongsToRelation(relation) || internals.isManyRelation(relation)){
+                            if (!level[relation]){
+                                level[relation] = {};
+                            }
+                            level = level[relation];
+                        }
+                    });
+                }
+            }
+        };
+
+        /**
          * Build a query based on the `fields` parameter.
          * @param  fieldNames {object}
          */
@@ -350,6 +409,9 @@ export default (Bookshelf, options = {}) => {
         ////////////////////////////////
         /// Process parameters
         ////////////////////////////////
+
+        // Apply relational dependencies for filters and sorting
+        internals.buildDependencies(filter, sort);
 
         // Apply filters
         internals.buildFilters(filter);
