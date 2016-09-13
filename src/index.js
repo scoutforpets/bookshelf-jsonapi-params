@@ -308,7 +308,7 @@ export default (Bookshelf, options = {}) => {
                                 _forEach(filterTypeValues, (typeValue, typeKey) => {
 
                                     // Remove all but the last table name, need to get number of dots
-                                    typeKey = internals.formatRelation(typeKey);
+                                    typeKey = internals.formatRelation(internals.formatColumnNames([typeKey])[0]);
 
                                     // Determine if there are multiple filters to be applied
                                     const valueArray = typeValue.toString().indexOf(',') !== -1 ? typeValue.split(',') : typeValue;
@@ -367,7 +367,8 @@ export default (Bookshelf, options = {}) => {
                         else {
 
                             // Remove all but the last table name, need to get number of dots
-                            key = internals.formatRelation(key);
+
+                            key = internals.formatRelation(internals.formatColumnNames([key])[0]);
 
                             // Determine if there are multiple filters to be applied
                             value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
