@@ -122,14 +122,6 @@ export default (Bookshelf, options = {}) => {
                 });
             }
 
-            // Add left outerjoins to the query for each relationship
-            /**
-             *  TODO: will need to to recursion
-             *  May need to support hasMany, hasOne, etc...
-                Model related data looks like this:
-
-             */
-
             // Need to select model.* so all of the relations are not returned, also check if there is anything in fields object
             if (_keys(relationHash).length && _keys(fields).length){
                 internals.model.query((qb) => {
@@ -140,10 +132,8 @@ export default (Bookshelf, options = {}) => {
             // Recurse on each of the relations in relationHash
             _forIn(relationHash, (value, key) => {
 
-                console.log('recursing on: ' + value + ' ' + key + ' ' + this + ' ' + internals.modelName);
                 return internals.queryRelations(value, key, this, internals.modelName);
             });
-            console;
         };
 
         /**
@@ -163,28 +153,12 @@ export default (Bookshelf, options = {}) => {
 
                 const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
                 if (relatedData.type === 'hasOne' || relatedData.type === 'hasMany'){
-                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`, `${parentKey}.${relatedData.parentIdAttribute}`, `${relationKey}.${foreignKey}`);
-                }/*
-                else if(relatedData.type === 'hasMany'){
-                    qb.leftOuterJoin()
-/*
-
-            return this.hasMany(Models.FormInstance, 'campaign_id');
-                foreignKey:"campaign_id"
-                parentFk:undefined
-                parentId:undefined
-                parentIdAttribute:"id"
-                parentTableName:"campaigns"
-                target:function () { … }
-                targetIdAttribute:"id"
-                targetTableName:"forminstances"
-                type:"hasMany"
-*
-                There is an issue with casing of relationship name and LIKE type converting to lower in query
-                Need to test in sql
-                }*/
+                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
+                                     `${parentKey}.${relatedData.parentIdAttribute}`,
+                                     `${relationKey}.${foreignKey}`);
+                }
                 else if (relatedData.type === 'belongsTo'){
-                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`, `${foreignKey}`, `${relationKey}.${relatedData.targetIdAttribute}`);
+                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`, `${parentKey}.${foreignKey}`, `${relationKey}.${relatedData.targetIdAttribute}`);
                 }
                 else if (relatedData.type === 'belongsToMany'){
                     const otherKey = relatedData.otherKey ? relatedData.otherKey : `${inflection.singularize(relatedData.targetTableName)}_id`;
@@ -196,7 +170,21 @@ export default (Bookshelf, options = {}) => {
                     qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
                                         `${relationKey}_${joinTableName}.${otherKey}`,
                                         `${relationKey}.${relatedData.targetIdAttribute}`);
+                }
+                else if (_includes(relatedData.type, 'morph')){
+                    // Get the morph type and id
+                    const morphType = relatedData.columnNames[0] ? relatedData.columnNames[0] : `${relatedData.morphName}_type`;
+                    const morphId = relatedData.columnNames[1] ? relatedData.columnNames[0] : `${relatedData.morphName}_id`;
+                    if (relatedData.type === 'morphOne' || relatedData.type === 'morphMany'){
 
+                        qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`, (qbJoin) => {
+
+                            qbJoin.on(`${relationKey}.${morphId}`, '=', `${parentKey}.${relatedData.parentIdAttribute}`);
+                        }).where(`${relationKey}.${morphType}`, '=', relatedData.morphValue);
+                    }
+                    else if (relatedData.type === 'morphTo'){
+                        // Not implemented
+                    }
                 }
             });
 
@@ -205,7 +193,6 @@ export default (Bookshelf, options = {}) => {
             }
             _forIn(relation, (value, key) => {
 
-                console.log('recursing on: ' + value + ' ' + key + ' ' + parentModel + ' ' + relationKey);
                 return internals.queryRelations(value, key, parentModel[relationKey]().relatedData.target.forge(), relationKey);
             });
         };
@@ -229,9 +216,7 @@ export default (Bookshelf, options = {}) => {
                     _forEach(relations, (relation) => {
 
                         // Check if valid relationship
-                        if (internals.isBelongsToRelation(relation, relationModel)
-                            || internals.isManyRelation(relation, relationModel)
-                            || internals.ishasOneRelation(relation, relationModel)){
+                        if (typeof relationModel[relation] === 'function' && relationModel[relation]().relatedData.type){
                             if (!level[relation]){
                                 level[relation] = {};
                             }
@@ -239,6 +224,9 @@ export default (Bookshelf, options = {}) => {
 
                             // Set relation model to the next item in the chain
                             relationModel = relationModel.related(relation).relatedData.target.forge();
+                        }
+                        else {
+                            return false;
                         }
                     });
                 }
@@ -325,6 +313,9 @@ export default (Bookshelf, options = {}) => {
 
                                     // Attach different query for each type
                                     if (key === 'like'){
+
+                                        // Need to add double quotes for each table/column name, this is needed if there is a relationship with a capital letter
+                                        typeKey = `"${typeKey.replace('.', '"."')}"`;
                                         if (_isArray(valueArray)){
                                             qb.where((qbWhere) => {
 
@@ -596,9 +587,7 @@ export default (Bookshelf, options = {}) => {
 
             _assign(page, options.pagination);
         }
-        internals.model.query(qb => {
-            console.log(qb.toString());
-        })
+
         // Apply paging
         if (isCollection &&
             _isObject(page) &&
