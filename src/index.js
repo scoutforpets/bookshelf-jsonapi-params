@@ -346,7 +346,7 @@ export default (Bookshelf, options = {}) => {
                                         }
                                     }
                                     else if (key === 'not'){
-                                        qb[where + 'NotIn'].apply(qb, [typeKey, valueArray]);
+                                        qb[where + 'NotIn'](typeKey, valueArray);
                                     }
                                     else if (key === 'lt'){
                                         qb[where](typeKey, '<', typeValue);
@@ -376,12 +376,12 @@ export default (Bookshelf, options = {}) => {
                             let where = 'where';
                             _forEach(filterTypes, (typeKey) => {
 
-                                if (_hasIn(filterValues, typeKey)){
+                                if (_hasIn(filterValues[typeKey], key)){
                                     where = 'orWhere';
                                 }
                             });
 
-                            qb[where + 'In'].apply(qb, [key, value]);
+                            qb[where + 'In'](key, value);
                         }
                     });
                 });
