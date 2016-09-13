@@ -261,7 +261,7 @@ export default (Bookshelf, options = {}) => {
                         // Add column to query
                         internals.model.query((qb) => {
 
-                            qb.column.apply(qb, [fieldValue]);
+                            qb.select(fieldValue);
 
                             // JSON API considers relationships as fields, so we
                             // need to make sure the id of the relation is selected
@@ -272,7 +272,7 @@ export default (Bookshelf, options = {}) => {
                                 if (!internals.isManyRelation(relation, model) &&
                                     !_includes(fieldNames[relation], relationId)) {
 
-                                    qb.column.apply(qb, [relationId]);
+                                    qb.select(relationId);
                                 }
                             });
                         });
@@ -500,7 +500,7 @@ export default (Bookshelf, options = {}) => {
 
                     // Format column names using Model#format
                     if (_isArray(columnNames[key])) {
-                        columnNames[key] = columnNames[key].substring(0, columnNames[key].lastIndexOf('.')) + _keys(this.format(columns));
+                        columnNames[key] = _keys(this.format(columns));
                     }
                     else {
                         columnNames = _keys(this.format(columns));
