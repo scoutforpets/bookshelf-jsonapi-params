@@ -367,7 +367,6 @@ export default (Bookshelf, options = {}) => {
                         else {
 
                             // Remove all but the last table name, need to get number of dots
-
                             key = internals.formatRelation(internals.formatColumnNames([key])[0]);
 
                             // Determine if there are multiple filters to be applied
@@ -486,9 +485,8 @@ export default (Bookshelf, options = {}) => {
 
                 let columns = {};
                 if (_includes(value, '.')){
-                    columns[columnNames[key].substr(columnNames[key].lastIndexOf('.'))] = undefined;
-
-                    columnNames[key] = columnNames[key].substring(0, columnNames[key].lastIndexOf('.')) + _keys(this.format(columns));
+                    columns[columnNames[key].substr(columnNames[key].lastIndexOf('.') + 1)] = undefined;
+                    columnNames[key] = columnNames[key].substring(0, columnNames[key].lastIndexOf('.')) + '.' + _keys(this.format(columns));
                 }
                 else {
                     // Convert column names to an object so it can
