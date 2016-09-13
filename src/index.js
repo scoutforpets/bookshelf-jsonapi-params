@@ -115,7 +115,7 @@ export default (Bookshelf, options = {}) => {
                 _forEach(sortValues, (value) => {
 
                     // If the sort value is descending, remove the dash
-                    if (value.startsWith('-')){
+                    if (value.indexOf('-') === 0){
                         value = value.substr(1);
                     }
                     // Add relations to the relationHash

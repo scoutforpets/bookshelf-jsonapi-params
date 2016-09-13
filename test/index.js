@@ -441,7 +441,7 @@ describe('bookshelf-jsonapi-params', () => {
 
     describe('passing a `filter` parameter for relationships', () => {
 
-        it('should return all records that that have a pet with name', (done) => {
+        it('should return all records that have a pet with name', (done) => {
 
             PersonModel
                 .forge()
