@@ -313,7 +313,7 @@ export default (Bookshelf, options = {}) => {
                                     const valueArray = typeValue.toString().indexOf(',') !== -1 ? typeValue.split(',') : typeValue;
 
                                     // If the column exists as an equality filter, add 'or' to 'where'
-                                    const where = _hasIn(filterValues, typeKey) ? 'where' : 'orWhere';
+                                    let where = _hasIn(filterValues, typeKey) ? 'orWhere' : 'where';
 
                                     // Attach different query for each type
                                     if (key === 'like'){
@@ -323,12 +323,18 @@ export default (Bookshelf, options = {}) => {
                                         if (_isArray(valueArray)){
                                             qb.where((qbWhere) => {
 
-                                                _forEach(valueArray, (val, index) => {
+                                                _forEach(valueArray, (val) => {
 
                                                     val = `%${val}%`;
+
                                                     qbWhere[where](
                                                         Bookshelf.knex.raw(`LOWER(${typeKey}) like LOWER(?)`, [val])
                                                     );
+
+                                                    // Change to orWhere after the first where
+                                                    if (where === 'where'){
+                                                        where = 'orWhere';
+                                                    }
                                                 });
                                             });
                                         }
