@@ -120,6 +120,16 @@ describe('bookshelf-jsonapi-params', () => {
                     id: 1,
                     name: 'Big Bird',
                     person_id: 1
+                }),
+                PetModel.forge().save({
+                    id: 2,
+                    name: 'Godzilla',
+                    person_id: 2
+                }),
+                PetModel.forge().save({
+                    id: 3,
+                    name: 'Patches',
+                    person_id: 3
                 })
             );
         })
@@ -423,6 +433,27 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('firstName')).to.equal('Baby Bop');
+                    done();
+                });
+        });
+    });
+
+
+    describe('passing a `filter` parameter for relationships', () => {
+
+        it('should return all records that that have a pet with name', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        'pets.name': 'Big Bird'
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('firstName')).to.equal('Barney');
                     done();
                 });
         });

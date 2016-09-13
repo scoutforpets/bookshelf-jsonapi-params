@@ -15,6 +15,8 @@ import {
     zipObject as _zipObject
 } from 'lodash';
 
+import inflection from 'inflection';
+
 import Paginator from 'bookshelf-page';
 
 /**
@@ -121,16 +123,95 @@ export default (Bookshelf, options = {}) => {
             }
 
             // Add left outerjoins to the query for each relationship
-            // TODO: will need to to recursion
-            _forIn(relationHash, (value, key, object) => {
+            /**
+             *  TODO: will need to to recursion
+             *  May need to support hasMany, hasOne, etc...
+                Model related data looks like this:
 
-                console.log(key);
+             */
+
+            // Need to select model.* so all of the relations are not returned, also check if there is anything in fields object
+            if (_keys(relationHash).length && _keys(fields).length){
+                internals.model.query((qb) => {
+
+                    qb.select(`${internals.modelName}.*`);
+                });
+            }
+            // Recurse on each of the relations in relationHash
+            _forIn(relationHash, (value, key) => {
+
+                console.log('recursing on: ' + value + ' ' + key + ' ' + this + ' ' + internals.modelName);
+                return internals.queryRelations(value, key, this, internals.modelName);
             });
             console;
         };
 
         /**
-         * Adds relations included in the key to the relationHash
+         * Recursive funtion to add relationships to main query to allow filtering and sorting
+         * on relationships by using left outer joins
+         * @param   relation {object}
+         * @param   relationKey {string}
+         * @param   parent {object}
+         * @param   parentKey {string}
+         */
+        internals.queryRelations = (relation, relationKey, parentModel, parentKey) => {
+
+            // Add left outer joins for the relation
+            const relatedData = parentModel[relationKey]().relatedData;
+
+            internals.model.query((qb) => {
+
+                const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
+                if (relatedData.type === 'hasOne' || relatedData.type === 'hasMany'){
+                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`, `${parentKey}.${relatedData.parentIdAttribute}`, `${relationKey}.${foreignKey}`);
+                }/*
+                else if(relatedData.type === 'hasMany'){
+                    qb.leftOuterJoin()
+/*
+
+            return this.hasMany(Models.FormInstance, 'campaign_id');
+                foreignKey:"campaign_id"
+                parentFk:undefined
+                parentId:undefined
+                parentIdAttribute:"id"
+                parentTableName:"campaigns"
+                target:function () { … }
+                targetIdAttribute:"id"
+                targetTableName:"forminstances"
+                type:"hasMany"
+*
+                There is an issue with casing of relationship name and LIKE type converting to lower in query
+                Need to test in sql
+                }*/
+                else if (relatedData.type === 'belongsTo'){
+                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`, `${foreignKey}`, `${relationKey}.${relatedData.targetIdAttribute}`);
+                }
+                else if (relatedData.type === 'belongsToMany'){
+                    const otherKey = relatedData.otherKey ? relatedData.otherKey : `${inflection.singularize(relatedData.targetTableName)}_id`;
+                    const joinTableName = relatedData.joinTableName ? relatedData.joinTableName : relatedData.throughTableName;
+
+                    qb.leftOuterJoin(`${joinTableName} as ${relationKey}_${joinTableName}`,
+                                        `${parentKey}.${relatedData.parentIdAttribute}`,
+                                        `${relationKey}_${joinTableName}.${foreignKey}`);
+                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
+                                        `${relationKey}_${joinTableName}.${otherKey}`,
+                                        `${relationKey}.${relatedData.targetIdAttribute}`);
+
+                }
+            });
+
+            if (!_keys(relation).length){
+                return;
+            }
+            _forIn(relation, (value, key) => {
+
+                console.log('recursing on: ' + value + ' ' + key + ' ' + parentModel + ' ' + relationKey);
+                return internals.queryRelations(value, key, parentModel[relationKey]().relatedData.target.forge(), relationKey);
+            });
+        };
+
+        /**
+         * Adds relations included in the key to the relationHash, used in buildDependencies
          * @param   key {string}
          * @param   relationHash {object}
          */
@@ -148,14 +229,16 @@ export default (Bookshelf, options = {}) => {
                     _forEach(relations, (relation) => {
 
                         // Check if valid relationship
-                        if (internals.isBelongsToRelation(relation, relationModel) || internals.isManyRelation(relation, relationModel)){
+                        if (internals.isBelongsToRelation(relation, relationModel)
+                            || internals.isManyRelation(relation, relationModel)
+                            || internals.ishasOneRelation(relation, relationModel)){
                             if (!level[relation]){
                                 level[relation] = {};
                             }
                             level = level[relation];
 
                             // Set relation model to the next item in the chain
-                            relationModel = relationModel.related(relation);
+                            relationModel = relationModel.related(relation).relatedData.target.forge();
                         }
                     });
                 }
@@ -216,9 +299,8 @@ export default (Bookshelf, options = {}) => {
         internals.buildFilters = (filterValues) => {
 
             if (_isObjectLike(filterValues) && !_isEmpty(filterValues)) {
-
                 // format the column names of the filters
-                filterValues = this.format(filterValues);
+                //filterValues = this.format(filterValues);
 
                 // build the filter query
                 internals.model.query((qb) => {
@@ -228,12 +310,15 @@ export default (Bookshelf, options = {}) => {
                         // If the value is a filter type
                         if (_isObjectLike(value)){
                             // Format column names of filter types
-                            const filterTypeValues = this.format(value);
+                            const filterTypeValues = value;
 
                             // Check if filter type is valid
                             if (_includes(filterTypes, key)){
                                 // Loop through each value for the valid filter type
                                 _forEach(filterTypeValues, (typeValue, typeKey) => {
+
+                                    // Remove all but the last table name, need to get number of dots
+                                    typeKey = internals.formatRelation(typeKey);
 
                                     // Determine if there are multiple filters to be applied
                                     const valueArray = typeValue.toString().indexOf(',') !== -1 ? typeValue.split(',') : typeValue;
@@ -285,14 +370,31 @@ export default (Bookshelf, options = {}) => {
                         }
                         // If the value is an equality filter
                         else {
+
+                            // Remove all but the last table name, need to get number of dots
+                            key = internals.formatRelation(key);
+
                             // Determine if there are multiple filters to be applied
                             value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
-
+                            console.log(`key: ${key} value: ${value}`);
                             qb.whereIn.apply(qb, [key, value]);
                         }
                     });
                 });
             }
+        };
+
+        /**
+         * Takes in an attribute string like a.b.c.d and returns c.d
+         * @param   attribute {string}
+         */
+        internals.formatRelation = (attribute) => {
+
+            if (_includes(attribute, '.')){
+                const splitKey = attribute.split('.');
+                attribute = `${splitKey[splitKey.length - 2]}.${splitKey[splitKey.length - 1]}`;
+            }
+            return attribute;
         };
 
         /**
@@ -444,6 +546,28 @@ export default (Bookshelf, options = {}) => {
             return false;
         };
 
+        /**
+         * Determines if the specified relation is a `hasone` type.
+         * @param   relationName {string}
+         * @param   model {object}
+         * @return  {boolean}
+         */
+        internals.ishasOneRelation = (relationName, model) => {
+
+            if (!model.related(relationName)){
+                return false;
+            }
+            const relationType = model.related(relationName).relatedData.type.toLowerCase();
+
+            if (relationType !== undefined &&
+                relationType === 'hasone'){
+
+                return true;
+            }
+
+            return false;
+        };
+
         ////////////////////////////////
         /// Process parameters
         ////////////////////////////////
@@ -472,7 +596,9 @@ export default (Bookshelf, options = {}) => {
 
             _assign(page, options.pagination);
         }
-
+        internals.model.query(qb => {
+            console.log(qb.toString());
+        })
         // Apply paging
         if (isCollection &&
             _isObject(page) &&
