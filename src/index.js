@@ -4,6 +4,7 @@ import {
     assign as _assign,
     forEach as _forEach,
     has as _has,
+    hasIn as _hasIn,
     includes as _includes,
     isEmpty as _isEmpty,
     isArray as _isArray,
@@ -311,6 +312,9 @@ export default (Bookshelf, options = {}) => {
                                     // Determine if there are multiple filters to be applied
                                     const valueArray = typeValue.toString().indexOf(',') !== -1 ? typeValue.split(',') : typeValue;
 
+                                    // If the column exists as an equality filter, add 'or' to 'where'
+                                    const where = _hasIn(filterValues, typeKey) ? 'where' : 'orWhere';
+
                                     // Attach different query for each type
                                     if (key === 'like'){
 
@@ -322,39 +326,32 @@ export default (Bookshelf, options = {}) => {
                                                 _forEach(valueArray, (val, index) => {
 
                                                     val = `%${val}%`;
-                                                    if (index === 0){
-                                                        qbWhere.where(
-                                                            Bookshelf.knex.raw(`LOWER(${typeKey}) like LOWER(?)`, [val])
-                                                        );
-                                                    }
-                                                    else {
-                                                        qbWhere.orWhere(
-                                                            Bookshelf.knex.raw(`LOWER(${typeKey}) like LOWER(?)`, [val])
-                                                        );
-                                                    }
+                                                    qbWhere[where](
+                                                        Bookshelf.knex.raw(`LOWER(${typeKey}) like LOWER(?)`, [val])
+                                                    );
                                                 });
                                             });
                                         }
                                         else {
-                                            qb.where(
+                                            qb[where](
                                                 Bookshelf.knex.raw(`LOWER(${typeKey}) like LOWER(?)`, [`%${typeValue}%`])
                                             );
                                         }
                                     }
                                     else if (key === 'not'){
-                                        qb.whereNotIn.apply(qb, [typeKey, valueArray]);
+                                        qb[where + 'NotIn'].apply(qb, [typeKey, valueArray]);
                                     }
                                     else if (key === 'lt'){
-                                        qb.where(typeKey, '<', typeValue);
+                                        qb[where](typeKey, '<', typeValue);
                                     }
                                     else if (key === 'gt'){
-                                        qb.where(typeKey, '>', typeValue);
+                                        qb[where](typeKey, '>', typeValue);
                                     }
                                     else if (key === 'lte'){
-                                        qb.where(typeKey, '<=', typeValue);
+                                        qb[where](typeKey, '<=', typeValue);
                                     }
                                     else if (key === 'gte'){
-                                        qb.where(typeKey, '>=', typeValue);
+                                        qb[where](typeKey, '>=', typeValue);
                                     }
                                 });
                             }
@@ -367,8 +364,17 @@ export default (Bookshelf, options = {}) => {
 
                             // Determine if there are multiple filters to be applied
                             value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
-                            console.log(`key: ${key} value: ${value}`);
-                            qb.whereIn.apply(qb, [key, value]);
+
+                            // If the column exists as an filter type, add 'or' to 'where'
+                            let where = 'where';
+                            _forEach(filterTypes, (typeKey) => {
+
+                                if (_hasIn(filterValues, typeKey)){
+                                    where = 'orWhere';
+                                }
+                            });
+
+                            qb[where + 'In'].apply(qb, [key, value]);
                         }
                     });
                 });
