@@ -482,23 +482,29 @@ export default (Bookshelf, options = {}) => {
 
             _forEach(columnNames, (value, key) => {
 
-                let columns;
+                let columns = {};
+                if (_includes(value, '.')){
+                    columns[columnNames[key].substr(columnNames[key].lastIndexOf('.'))] = undefined;
 
-                // Convert column names to an object so it can
-                // be passed to Model#format
-                if (_isArray(columnNames[key])) {
-                    columns = _zipObject(columnNames[key], null);
+                    columnNames[key] = columnNames[key].substring(0, columnNames[key].lastIndexOf('.')) + _keys(this.format(columns));
                 }
                 else {
-                    columns = _zipObject(columnNames, null);
-                }
+                    // Convert column names to an object so it can
+                    // be passed to Model#format
+                    if (_isArray(columnNames[key])) {
+                        columns = _zipObject(columnNames[key], null);
+                    }
+                    else {
+                        columns = _zipObject(columnNames, null);
+                    }
 
-                // Format column names using Model#format
-                if (_isArray(columnNames[key])) {
-                    columnNames[key] = _keys(this.format(columns));
-                }
-                else {
-                    columnNames = _keys(this.format(columns));
+                    // Format column names using Model#format
+                    if (_isArray(columnNames[key])) {
+                        columnNames[key] = columnNames[key].substring(0, columnNames[key].lastIndexOf('.')) + _keys(this.format(columns));
+                    }
+                    else {
+                        columnNames = _keys(this.format(columns));
+                    }
                 }
             });
 
