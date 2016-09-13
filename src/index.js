@@ -124,7 +124,7 @@ export default (Bookshelf, options = {}) => {
             }
 
             // Need to select model.* so all of the relations are not returned, also check if there is anything in fields object
-            if (_keys(relationHash).length && _keys(fields).length){
+            if (_keys(relationHash).length && !_keys(fields).length){
                 internals.model.query((qb) => {
 
                     qb.select(`${internals.modelName}.*`);
@@ -258,26 +258,27 @@ export default (Bookshelf, options = {}) => {
                     // for relations are processed in `buildIncludes()`
                     if (!_includes(include, fieldKey)) {
 
-                        // Add column to query
+
+                        // Add columns to query
                         internals.model.query((qb) => {
 
-                            qb.select(fieldValue);
+                            qb.select(fieldNames[fieldKey]);
 
                             // JSON API considers relationships as fields, so we
                             // need to make sure the id of the relation is selected
                             _forEach(include, (relation) => {
 
-                                const relationId = `${relation}_id`;
-
-                                if (!internals.isManyRelation(relation, model) &&
-                                    !_includes(fieldNames[relation], relationId)) {
-
+                                if (internals.isBelongsToRelation(relation, this)) {
+                                    const relatedData = this.related(relation).relatedData;
+                                    const relationId = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
                                     qb.select(relationId);
                                 }
                             });
                         });
                     }
                 });
+
+
             }
         };
 
