@@ -251,6 +251,9 @@ export default (Bookshelf, options = {}) => {
                     // Add qualifying table name to avoid ambiguous columns
                     fieldNames[fieldKey] = _map(fieldNames[fieldKey], (value) => {
 
+                        if (!fieldKey){
+                            return value;
+                        }
                         return `${fieldKey}.${value}`;
                     });
 
@@ -261,6 +264,10 @@ export default (Bookshelf, options = {}) => {
 
                         // Add columns to query
                         internals.model.query((qb) => {
+
+                            if (!fieldKey){
+                                qb.distinct();
+                            }
 
                             qb.select(fieldNames[fieldKey]);
 
@@ -313,23 +320,21 @@ export default (Bookshelf, options = {}) => {
                                     // Determine if there are multiple filters to be applied
                                     const valueArray = typeValue.toString().indexOf(',') !== -1 ? typeValue.split(',') : typeValue;
 
-                                    // If the column exists as an equality filter, add 'or' to 'where'
-                                    let where = _hasIn(filterValues, typeKey) ? 'orWhere' : 'where';
-
                                     // Attach different query for each type
                                     if (key === 'like'){
 
                                         // Need to add double quotes for each table/column name, this is needed if there is a relationship with a capital letter
-                                        typeKey = `"${typeKey.replace('.', '"."')}"`;
-                                        if (_isArray(valueArray)){
-                                            qb.where((qbWhere) => {
+                                        const formatedKey = `"${typeKey.replace('.', '"."')}"`;
+                                        qb.where((qbWhere) => {
 
+                                            if (_isArray(valueArray)){
+                                                let where = 'where';
                                                 _forEach(valueArray, (val) => {
 
                                                     val = `%${val}%`;
 
                                                     qbWhere[where](
-                                                        Bookshelf.knex.raw(`LOWER(${typeKey}) like LOWER(?)`, [val])
+                                                        Bookshelf.knex.raw(`LOWER(${formatedKey}) like LOWER(?)`, [val])
                                                     );
 
                                                     // Change to orWhere after the first where
@@ -337,51 +342,50 @@ export default (Bookshelf, options = {}) => {
                                                         where = 'orWhere';
                                                     }
                                                 });
-                                            });
-                                        }
-                                        else {
-                                            qb[where](
-                                                Bookshelf.knex.raw(`LOWER(${typeKey}) like LOWER(?)`, [`%${typeValue}%`])
-                                            );
-                                        }
+                                            }
+                                            else {
+                                                qbWhere.where(
+                                                    Bookshelf.knex.raw(`LOWER(${formatedKey}) like LOWER(?)`, [`%${typeValue}%`])
+                                                );
+                                            }
+
+                                            // If the key is in the top level filter, filter on orWhereIn
+                                            if (_hasIn(filterValues, typeKey)){
+                                                // Determine if there are multiple filters to be applied
+                                                value = filterValues[typeKey].toString().indexOf(',') !== -1 ? filterValues[typeKey].split(',') : filterValues[typeKey];
+                                                qbWhere.orWhereIn(typeKey, value);
+                                            }
+                                        });
                                     }
                                     else if (key === 'not'){
-                                        qb[where + 'NotIn'](typeKey, valueArray);
+                                        qb.whereNotIn(typeKey, valueArray);
                                     }
                                     else if (key === 'lt'){
-                                        qb[where](typeKey, '<', typeValue);
+                                        qb.where(typeKey, '<', typeValue);
                                     }
                                     else if (key === 'gt'){
-                                        qb[where](typeKey, '>', typeValue);
+                                        qb.where(typeKey, '>', typeValue);
                                     }
                                     else if (key === 'lte'){
-                                        qb[where](typeKey, '<=', typeValue);
+                                        qb.where(typeKey, '<=', typeValue);
                                     }
                                     else if (key === 'gte'){
-                                        qb[where](typeKey, '>=', typeValue);
+                                        qb.where(typeKey, '>=', typeValue);
                                     }
                                 });
                             }
                         }
                         // If the value is an equality filter
                         else {
+                            // If the key is in the like filter, ignore the filter
+                            if (!_hasIn(filterValues.like, key)){
+                                // Remove all but the last table name, need to get number of dots
+                                key = internals.formatRelation(internals.formatColumnNames([key])[0]);
 
-                            // Remove all but the last table name, need to get number of dots
-                            key = internals.formatRelation(internals.formatColumnNames([key])[0]);
-
-                            // Determine if there are multiple filters to be applied
-                            value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
-
-                            // If the column exists as an filter type, add 'or' to 'where'
-                            let where = 'where';
-                            _forEach(filterTypes, (typeKey) => {
-
-                                if (_hasIn(filterValues[typeKey], key)){
-                                    where = 'orWhere';
-                                }
-                            });
-
-                            qb[where + 'In'](key, value);
+                                // Determine if there are multiple filters to be applied
+                                value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
+                                qb.whereIn(key, value);
+                            }
                         }
                     });
                 });
@@ -389,8 +393,10 @@ export default (Bookshelf, options = {}) => {
         };
 
         /**
-         * Takes in an attribute string like a.b.c.d and returns c.d
+         * Takes in an attribute string like a.b.c.d and returns c.d, also if attribute
+         * looks like 'a', it will return tableName.a where tableName is the top layer table name
          * @param   attribute {string}
+         * @return  {string}
          */
         internals.formatRelation = (attribute) => {
 
@@ -398,7 +404,24 @@ export default (Bookshelf, options = {}) => {
                 const splitKey = attribute.split('.');
                 attribute = `${splitKey[splitKey.length - 2]}.${splitKey[splitKey.length - 1]}`;
             }
+            // Add table name to before column name if no relation to avoid ambiguous columns
+            else {
+                attribute = `${internals.modelName}.${attribute}`;
+            }
             return attribute;
+        };
+
+        /**
+         * Takes an array from attributes and returns the only the columns and removes the table names
+         * @param   attributes {array}
+         * @return  {array}
+         */
+        internals.getColumnNames = (attributes) => {
+
+            return _map(attributes, (attribute) => {
+
+                return attribute.substr(attribute.lastIndexOf('.') + 1);
+            });
         };
 
         /**
@@ -420,14 +443,18 @@ export default (Bookshelf, options = {}) => {
                         relations.push({
                             [relation]: (qb) => {
 
-                                const relationId = `${internals.modelName}_id`;
+                                if (!internals.isBelongsToRelation(relation, this)) {
+                                    const relatedData = this[relation]().relatedData;
+                                    const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
 
-                                if (!internals.isBelongsToRelation(relation, this) &&
-                                    !_includes(fieldNames[relation], relationId)) {
-
-                                    qb.column.apply(qb, [relationId]);
+                                    if (!_includes(fieldNames[relation], foreignKey)){
+                                        qb.column.apply(qb, [foreignKey]);
+                                    }
                                 }
-
+                                fieldNames[relation] = internals.getColumnNames(fieldNames[relation]);
+                                if (!_includes(fieldNames[relation], 'id')){
+                                    qb.column.apply(qb, ['id']);
+                                }
                                 qb.column.apply(qb, [fieldNames[relation]]);
                             }
                         });
@@ -487,6 +514,10 @@ export default (Bookshelf, options = {}) => {
                 if (_includes(value, '.')){
                     columns[columnNames[key].substr(columnNames[key].lastIndexOf('.') + 1)] = undefined;
                     columnNames[key] = columnNames[key].substring(0, columnNames[key].lastIndexOf('.')) + '.' + _keys(this.format(columns));
+                }
+                else if (_isArray(value) && key === '' && value.length === 1 && _includes(value[0], '.')){
+                    columns[value[0].substr(value[0].lastIndexOf('.') + 1)] = undefined;
+                    value[0] = value[0].substring(0, value[0].lastIndexOf('.')) + '.' + _keys(this.format(columns));
                 }
                 else {
                     // Convert column names to an object so it can
