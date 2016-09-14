@@ -393,7 +393,8 @@ export default (Bookshelf, options = {}) => {
         };
 
         /**
-         * Takes in an attribute string like a.b.c.d and returns c.d
+         * Takes in an attribute string like a.b.c.d and returns c.d, also if attribute
+         * looks like 'a', it will return tableName.a where tableName is the top layer table name
          * @param   attribute {string}
          * @return  {string}
          */
@@ -401,7 +402,12 @@ export default (Bookshelf, options = {}) => {
 
             if (_includes(attribute, '.')){
                 const splitKey = attribute.split('.');
+                // Need to add double quotes for each table/column name, this is needed if there is a relationship with a capital letter
                 attribute = `${splitKey[splitKey.length - 2]}.${splitKey[splitKey.length - 1]}`;
+            }
+            // Add table name to before column name if no relation
+            else {
+                attribute = `${internals.modelName}.${attribute}`;
             }
             return attribute;
         };
