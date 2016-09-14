@@ -251,6 +251,9 @@ export default (Bookshelf, options = {}) => {
                     // Add qualifying table name to avoid ambiguous columns
                     fieldNames[fieldKey] = _map(fieldNames[fieldKey], (value) => {
 
+                        if (!fieldKey){
+                            return value;
+                        }
                         return `${fieldKey}.${value}`;
                     });
 
@@ -261,6 +264,10 @@ export default (Bookshelf, options = {}) => {
 
                         // Add columns to query
                         internals.model.query((qb) => {
+
+                            if (!fieldKey){
+                                qb.distinct();
+                            }
 
                             qb.select(fieldNames[fieldKey]);
 
@@ -391,6 +398,7 @@ export default (Bookshelf, options = {}) => {
         /**
          * Takes in an attribute string like a.b.c.d and returns c.d
          * @param   attribute {string}
+         * @return  {string}
          */
         internals.formatRelation = (attribute) => {
 
@@ -399,6 +407,19 @@ export default (Bookshelf, options = {}) => {
                 attribute = `${splitKey[splitKey.length - 2]}.${splitKey[splitKey.length - 1]}`;
             }
             return attribute;
+        };
+
+        /**
+         * Takes an array from attributes and returns the only the columns and removes the table names
+         * @param   attributes {array}
+         * @return  {array}
+         */
+        internals.getColumnNames = (attributes) => {
+
+            return _map(attributes, (attribute) => {
+
+                return attribute.substr(attribute.lastIndexOf('.') + 1);
+            });
         };
 
         /**
@@ -420,14 +441,18 @@ export default (Bookshelf, options = {}) => {
                         relations.push({
                             [relation]: (qb) => {
 
-                                const relationId = `${internals.modelName}_id`;
+                                if (!internals.isBelongsToRelation(relation, this)) {
+                                    const relatedData = this[relation]().relatedData;
+                                    const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
 
-                                if (!internals.isBelongsToRelation(relation, this) &&
-                                    !_includes(fieldNames[relation], relationId)) {
-
-                                    qb.column.apply(qb, [relationId]);
+                                    if (!_includes(fieldNames[relation], foreignKey)){
+                                        qb.column.apply(qb, [foreignKey]);
+                                    }
                                 }
-
+                                fieldNames[relation] = internals.getColumnNames(fieldNames[relation]);
+                                if (!_includes(fieldNames[relation], 'id')){
+                                    qb.column.apply(qb, ['id']);
+                                }
                                 qb.column.apply(qb, [fieldNames[relation]]);
                             }
                         });
@@ -487,6 +512,10 @@ export default (Bookshelf, options = {}) => {
                 if (_includes(value, '.')){
                     columns[columnNames[key].substr(columnNames[key].lastIndexOf('.') + 1)] = undefined;
                     columnNames[key] = columnNames[key].substring(0, columnNames[key].lastIndexOf('.')) + '.' + _keys(this.format(columns));
+                }
+                else if (_isArray(value) && key === '' && value.length === 1 && _includes(value[0], '.')){
+                    columns[value[0].substr(value[0].lastIndexOf('.') + 1)] = undefined;
+                    value[0] = value[0].substring(0, value[0].lastIndexOf('.')) + '.' + _keys(this.format(columns));
                 }
                 else {
                     // Convert column names to an object so it can
