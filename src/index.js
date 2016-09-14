@@ -402,10 +402,9 @@ export default (Bookshelf, options = {}) => {
 
             if (_includes(attribute, '.')){
                 const splitKey = attribute.split('.');
-                // Need to add double quotes for each table/column name, this is needed if there is a relationship with a capital letter
                 attribute = `${splitKey[splitKey.length - 2]}.${splitKey[splitKey.length - 1]}`;
             }
-            // Add table name to before column name if no relation
+            // Add table name to before column name if no relation to avoid ambiguous columns
             else {
                 attribute = `${internals.modelName}.${attribute}`;
             }
