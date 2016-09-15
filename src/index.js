@@ -4,15 +4,19 @@ import {
     assign as _assign,
     forEach as _forEach,
     has as _has,
+    hasIn as _hasIn,
     includes as _includes,
     isEmpty as _isEmpty,
     isArray as _isArray,
     isObject as _isObject,
     isObjectLike as _isObjectLike,
+    forIn as _forIn,
     keys as _keys,
     map as _map,
     zipObject as _zipObject
 } from 'lodash';
+
+import inflection from 'inflection';
 
 import Paginator from 'bookshelf-page';
 
@@ -59,6 +63,7 @@ export default (Bookshelf, options = {}) => {
 
         const internals = {};
         const { include, fields, sort, page = {}, filter } = opts;
+        const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte'];
 
         // Get a reference to the field being used as the id
         internals.idAttribute = this.constructor.prototype.idAttribute ?
@@ -71,6 +76,163 @@ export default (Bookshelf, options = {}) => {
         // Initialize an instance of the current model and clone the initial query
         internals.model =
             this.constructor.forge().query((qb) => _assign(qb, this.query().clone()));
+
+        /**
+         * Build a query for relational dependencies of filtering and sorting
+         * @param   filterValues {object}
+         * @param   sortValues {object}
+         */
+        internals.buildDependencies = (filterValues, sortValues) => {
+
+            const relationHash = {};
+            // Find relations in fitlerValues
+            if (_isObjectLike(filterValues) && !_isEmpty(filterValues)){
+
+                // Loop through each filter value
+                _forEach(filterValues, (value, key) => {
+
+                    // If the filter is not an equality filter
+                    if (_isObjectLike(value)){
+                        if (!_isEmpty(value)){
+                            _forEach(value, (typeValue, typeKey) => {
+
+                                // Add relations to the relationHash
+                                internals.buildDependenciesHelper(typeKey, relationHash);
+                            });
+                        }
+                    }
+                    // If the filter is an equality filter
+                    else {
+                        internals.buildDependenciesHelper(key, relationHash);
+                    }
+                });
+            }
+
+            // Find relations in sortValues
+            if (_isObjectLike(sortValues) && !_isEmpty(sortValues)){
+
+                // Loop through each sort value
+                _forEach(sortValues, (value) => {
+
+                    // If the sort value is descending, remove the dash
+                    if (value.indexOf('-') === 0){
+                        value = value.substr(1);
+                    }
+                    // Add relations to the relationHash
+                    internals.buildDependenciesHelper(value, relationHash);
+                });
+            }
+
+            // Need to select model.* so all of the relations are not returned, also check if there is anything in fields object
+            if (_keys(relationHash).length && !_keys(fields).length){
+                internals.model.query((qb) => {
+
+                    qb.select(`${internals.modelName}.*`);
+                });
+            }
+            // Recurse on each of the relations in relationHash
+            _forIn(relationHash, (value, key) => {
+
+                return internals.queryRelations(value, key, this, internals.modelName);
+            });
+        };
+
+        /**
+         * Recursive funtion to add relationships to main query to allow filtering and sorting
+         * on relationships by using left outer joins
+         * @param   relation {object}
+         * @param   relationKey {string}
+         * @param   parent {object}
+         * @param   parentKey {string}
+         */
+        internals.queryRelations = (relation, relationKey, parentModel, parentKey) => {
+
+            // Add left outer joins for the relation
+            const relatedData = parentModel[relationKey]().relatedData;
+
+            internals.model.query((qb) => {
+
+                const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
+                if (relatedData.type === 'hasOne' || relatedData.type === 'hasMany'){
+                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
+                                     `${parentKey}.${relatedData.parentIdAttribute}`,
+                                     `${relationKey}.${foreignKey}`);
+                }
+                else if (relatedData.type === 'belongsTo'){
+                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`, `${parentKey}.${foreignKey}`, `${relationKey}.${relatedData.targetIdAttribute}`);
+                }
+                else if (relatedData.type === 'belongsToMany'){
+                    const otherKey = relatedData.otherKey ? relatedData.otherKey : `${inflection.singularize(relatedData.targetTableName)}_id`;
+                    const joinTableName = relatedData.joinTableName ? relatedData.joinTableName : relatedData.throughTableName;
+
+                    qb.leftOuterJoin(`${joinTableName} as ${relationKey}_${joinTableName}`,
+                                        `${parentKey}.${relatedData.parentIdAttribute}`,
+                                        `${relationKey}_${joinTableName}.${foreignKey}`);
+                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
+                                        `${relationKey}_${joinTableName}.${otherKey}`,
+                                        `${relationKey}.${relatedData.targetIdAttribute}`);
+                }
+                else if (_includes(relatedData.type, 'morph')){
+                    // Get the morph type and id
+                    const morphType = relatedData.columnNames[0] ? relatedData.columnNames[0] : `${relatedData.morphName}_type`;
+                    const morphId = relatedData.columnNames[1] ? relatedData.columnNames[0] : `${relatedData.morphName}_id`;
+                    if (relatedData.type === 'morphOne' || relatedData.type === 'morphMany'){
+
+                        qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`, (qbJoin) => {
+
+                            qbJoin.on(`${relationKey}.${morphId}`, '=', `${parentKey}.${relatedData.parentIdAttribute}`);
+                        }).where(`${relationKey}.${morphType}`, '=', relatedData.morphValue);
+                    }
+                    else if (relatedData.type === 'morphTo'){
+                        // Not implemented
+                    }
+                }
+            });
+
+            if (!_keys(relation).length){
+                return;
+            }
+            _forIn(relation, (value, key) => {
+
+                return internals.queryRelations(value, key, parentModel[relationKey]().relatedData.target.forge(), relationKey);
+            });
+        };
+
+        /**
+         * Adds relations included in the key to the relationHash, used in buildDependencies
+         * @param   key {string}
+         * @param   relationHash {object}
+         */
+        internals.buildDependenciesHelper = (key, relationHash) => {
+
+            if (_includes(key, '.')){
+                // The last item in the chain is a column name, not a table. Do not include column name in relationHash
+                key = key.substring(0, key.lastIndexOf('.'));
+                if (!_has(relationHash, key)){
+                    let level = relationHash;
+                    const relations = key.split('.');
+                    let relationModel = this.clone();
+
+                    // Traverse the relationHash object and set new relation if it does not exist
+                    _forEach(relations, (relation) => {
+
+                        // Check if valid relationship
+                        if (typeof relationModel[relation] === 'function' && relationModel[relation]().relatedData.type){
+                            if (!level[relation]){
+                                level[relation] = {};
+                            }
+                            level = level[relation];
+
+                            // Set relation model to the next item in the chain
+                            relationModel = relationModel.related(relation).relatedData.target.forge();
+                        }
+                        else {
+                            return false;
+                        }
+                    });
+                }
+            }
+        };
 
         /**
          * Build a query based on the `fields` parameter.
@@ -89,6 +251,9 @@ export default (Bookshelf, options = {}) => {
                     // Add qualifying table name to avoid ambiguous columns
                     fieldNames[fieldKey] = _map(fieldNames[fieldKey], (value) => {
 
+                        if (!fieldKey){
+                            return value;
+                        }
                         return `${fieldKey}.${value}`;
                     });
 
@@ -96,26 +261,31 @@ export default (Bookshelf, options = {}) => {
                     // for relations are processed in `buildIncludes()`
                     if (!_includes(include, fieldKey)) {
 
-                        // Add column to query
+
+                        // Add columns to query
                         internals.model.query((qb) => {
 
-                            qb.column.apply(qb, [fieldValue]);
+                            if (!fieldKey){
+                                qb.distinct();
+                            }
+
+                            qb.select(fieldNames[fieldKey]);
 
                             // JSON API considers relationships as fields, so we
                             // need to make sure the id of the relation is selected
                             _forEach(include, (relation) => {
 
-                                const relationId = `${relation}_id`;
-
-                                if (!internals.isManyRelation(relation) &&
-                                    !_includes(fieldNames[relation], relationId)) {
-
-                                    qb.column.apply(qb, [relationId]);
+                                if (internals.isBelongsToRelation(relation, this)) {
+                                    const relatedData = this.related(relation).relatedData;
+                                    const relationId = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
+                                    qb.select(relationId);
                                 }
                             });
                         });
                     }
                 });
+
+
             }
         };
 
@@ -126,22 +296,132 @@ export default (Bookshelf, options = {}) => {
         internals.buildFilters = (filterValues) => {
 
             if (_isObjectLike(filterValues) && !_isEmpty(filterValues)) {
-
                 // format the column names of the filters
-                filterValues = this.format(filterValues);
+                //filterValues = this.format(filterValues);
 
                 // build the filter query
                 internals.model.query((qb) => {
 
                     _forEach(filterValues, (value, key) => {
 
-                        // Determine if there are multiple filters to be applied
-                        value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
+                        // If the value is a filter type
+                        if (_isObjectLike(value)){
+                            // Format column names of filter types
+                            const filterTypeValues = value;
 
-                        qb.whereIn.apply(qb, [key, value]);
+                            // Check if filter type is valid
+                            if (_includes(filterTypes, key)){
+                                // Loop through each value for the valid filter type
+                                _forEach(filterTypeValues, (typeValue, typeKey) => {
+
+                                    // Remove all but the last table name, need to get number of dots
+                                    typeKey = internals.formatRelation(internals.formatColumnNames([typeKey])[0]);
+
+                                    // Determine if there are multiple filters to be applied
+                                    const valueArray = typeValue.toString().indexOf(',') !== -1 ? typeValue.split(',') : typeValue;
+
+                                    // Attach different query for each type
+                                    if (key === 'like'){
+
+                                        // Need to add double quotes for each table/column name, this is needed if there is a relationship with a capital letter
+                                        const formatedKey = `"${typeKey.replace('.', '"."')}"`;
+                                        qb.where((qbWhere) => {
+
+                                            if (_isArray(valueArray)){
+                                                let where = 'where';
+                                                _forEach(valueArray, (val) => {
+
+                                                    val = `%${val}%`;
+
+                                                    qbWhere[where](
+                                                        Bookshelf.knex.raw(`LOWER(${formatedKey}) like LOWER(?)`, [val])
+                                                    );
+
+                                                    // Change to orWhere after the first where
+                                                    if (where === 'where'){
+                                                        where = 'orWhere';
+                                                    }
+                                                });
+                                            }
+                                            else {
+                                                qbWhere.where(
+                                                    Bookshelf.knex.raw(`LOWER(${formatedKey}) like LOWER(?)`, [`%${typeValue}%`])
+                                                );
+                                            }
+
+                                            // If the key is in the top level filter, filter on orWhereIn
+                                            if (_hasIn(filterValues, typeKey)){
+                                                // Determine if there are multiple filters to be applied
+                                                value = filterValues[typeKey].toString().indexOf(',') !== -1 ? filterValues[typeKey].split(',') : filterValues[typeKey];
+                                                qbWhere.orWhereIn(typeKey, value);
+                                            }
+                                        });
+                                    }
+                                    else if (key === 'not'){
+                                        qb.whereNotIn(typeKey, valueArray);
+                                    }
+                                    else if (key === 'lt'){
+                                        qb.where(typeKey, '<', typeValue);
+                                    }
+                                    else if (key === 'gt'){
+                                        qb.where(typeKey, '>', typeValue);
+                                    }
+                                    else if (key === 'lte'){
+                                        qb.where(typeKey, '<=', typeValue);
+                                    }
+                                    else if (key === 'gte'){
+                                        qb.where(typeKey, '>=', typeValue);
+                                    }
+                                });
+                            }
+                        }
+                        // If the value is an equality filter
+                        else {
+                            // If the key is in the like filter, ignore the filter
+                            if (!_hasIn(filterValues.like, key)){
+                                // Remove all but the last table name, need to get number of dots
+                                key = internals.formatRelation(internals.formatColumnNames([key])[0]);
+
+                                // Determine if there are multiple filters to be applied
+                                value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
+                                qb.whereIn(key, value);
+                            }
+                        }
                     });
                 });
             }
+        };
+
+        /**
+         * Takes in an attribute string like a.b.c.d and returns c.d, also if attribute
+         * looks like 'a', it will return tableName.a where tableName is the top layer table name
+         * @param   attribute {string}
+         * @return  {string}
+         */
+        internals.formatRelation = (attribute) => {
+
+            if (_includes(attribute, '.')){
+                const splitKey = attribute.split('.');
+                attribute = `${splitKey[splitKey.length - 2]}.${splitKey[splitKey.length - 1]}`;
+            }
+            // Add table name to before column name if no relation to avoid ambiguous columns
+            else {
+                attribute = `${internals.modelName}.${attribute}`;
+            }
+            return attribute;
+        };
+
+        /**
+         * Takes an array from attributes and returns the only the columns and removes the table names
+         * @param   attributes {array}
+         * @return  {array}
+         */
+        internals.getColumnNames = (attributes) => {
+
+            return _map(attributes, (attribute) => {
+
+                return attribute.substr(attribute.lastIndexOf('.') + 1);
+            });
         };
 
         /**
@@ -163,14 +443,18 @@ export default (Bookshelf, options = {}) => {
                         relations.push({
                             [relation]: (qb) => {
 
-                                const relationId = `${internals.modelName}_id`;
+                                if (!internals.isBelongsToRelation(relation, this)) {
+                                    const relatedData = this[relation]().relatedData;
+                                    const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
 
-                                if (!internals.isBelongsToRelation(relation) &&
-                                    !_includes(fieldNames[relation], relationId)) {
-
-                                    qb.column.apply(qb, [relationId]);
+                                    if (!_includes(fieldNames[relation], foreignKey)){
+                                        qb.column.apply(qb, [foreignKey]);
+                                    }
                                 }
-
+                                fieldNames[relation] = internals.getColumnNames(fieldNames[relation]);
+                                if (!_includes(fieldNames[relation], 'id')){
+                                    qb.column.apply(qb, ['id']);
+                                }
                                 qb.column.apply(qb, [fieldNames[relation]]);
                             }
                         });
@@ -200,7 +484,8 @@ export default (Bookshelf, options = {}) => {
 
                     // Determine if the sort should be descending
                     if (typeof sortValues[i] === 'string' && sortValues[i][0] === '-') {
-                        sortDesc.push(sortValues[i].substring(1, sortValues[i].length));
+                        sortValues[i] = sortValues[i].substring(1);
+                        sortDesc.push(sortValues[i]);
                     }
                 }
 
@@ -225,23 +510,32 @@ export default (Bookshelf, options = {}) => {
 
             _forEach(columnNames, (value, key) => {
 
-                let columns;
-
-                // Convert column names to an object so it can
-                // be passed to Model#format
-                if (_isArray(columnNames[key])) {
-                    columns = _zipObject(columnNames[key], null);
+                let columns = {};
+                if (_includes(value, '.')){
+                    columns[columnNames[key].substr(columnNames[key].lastIndexOf('.') + 1)] = undefined;
+                    columnNames[key] = columnNames[key].substring(0, columnNames[key].lastIndexOf('.')) + '.' + _keys(this.format(columns));
+                }
+                else if (_isArray(value) && key === '' && value.length === 1 && _includes(value[0], '.')){
+                    columns[value[0].substr(value[0].lastIndexOf('.') + 1)] = undefined;
+                    value[0] = value[0].substring(0, value[0].lastIndexOf('.')) + '.' + _keys(this.format(columns));
                 }
                 else {
-                    columns = _zipObject(columnNames, null);
-                }
+                    // Convert column names to an object so it can
+                    // be passed to Model#format
+                    if (_isArray(columnNames[key])) {
+                        columns = _zipObject(columnNames[key], null);
+                    }
+                    else {
+                        columns = _zipObject(columnNames, null);
+                    }
 
-                // Format column names using Model#format
-                if (_isArray(columnNames[key])) {
-                    columnNames[key] = _keys(this.format(columns));
-                }
-                else {
-                    columnNames = _keys(this.format(columns));
+                    // Format column names using Model#format
+                    if (_isArray(columnNames[key])) {
+                        columnNames[key] = _keys(this.format(columns));
+                    }
+                    else {
+                        columnNames = _keys(this.format(columns));
+                    }
                 }
             });
 
@@ -250,12 +544,16 @@ export default (Bookshelf, options = {}) => {
 
         /**
          * Determines if the specified relation is a `belongsTo` type.
-         * @param  relationName {string}
-         * @return {boolean}
+         * @param   relationName {string}
+         * @param   model {object}
+         * @return  {boolean}
          */
-        internals.isBelongsToRelation = (relationName) => {
+        internals.isBelongsToRelation = (relationName, model) => {
 
-            const relationType = this.related(relationName).relatedData.type.toLowerCase();
+            if (!model.related(relationName)){
+                return false;
+            }
+            const relationType = model.related(relationName).relatedData.type.toLowerCase();
 
             if (relationType !== undefined &&
                 relationType === 'belongsto') {
@@ -268,12 +566,16 @@ export default (Bookshelf, options = {}) => {
 
         /**
          * Determines if the specified relation is a `many` type.
-         * @param  relationName {string}
-         * @return {boolean}
+         * @param   relationName {string}
+         * @param   model {object}
+         * @return  {boolean}
          */
-        internals.isManyRelation = (relationName) => {
+        internals.isManyRelation = (relationName, model) => {
 
-            const relationType = this.related(relationName).relatedData.type.toLowerCase();
+            if (!model.related(relationName)){
+                return false;
+            }
+            const relationType = model.related(relationName).relatedData.type.toLowerCase();
 
             if (relationType !== undefined &&
                 relationType.indexOf('many') > 0) {
@@ -284,9 +586,34 @@ export default (Bookshelf, options = {}) => {
             return false;
         };
 
+        /**
+         * Determines if the specified relation is a `hasone` type.
+         * @param   relationName {string}
+         * @param   model {object}
+         * @return  {boolean}
+         */
+        internals.ishasOneRelation = (relationName, model) => {
+
+            if (!model.related(relationName)){
+                return false;
+            }
+            const relationType = model.related(relationName).relatedData.type.toLowerCase();
+
+            if (relationType !== undefined &&
+                relationType === 'hasone'){
+
+                return true;
+            }
+
+            return false;
+        };
+
         ////////////////////////////////
         /// Process parameters
         ////////////////////////////////
+
+        // Apply relational dependencies for filters and sorting
+        internals.buildDependencies(filter, sort);
 
         // Apply filters
         internals.buildFilters(filter);
