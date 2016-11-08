@@ -391,7 +391,7 @@ export default (Bookshelf, options = {}) => {
                                 key = internals.formatRelation(internals.formatColumnNames([key])[0]);
 
                                 // Determine if there are multiple filters to be applied
-                                if (!isArray(value)){
+                                if (!_isArray(value)){
                                     value = split(value.toString(), ',');
                                 }
                                 qb.whereIn(key, value);
