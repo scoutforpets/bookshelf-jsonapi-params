@@ -321,7 +321,7 @@ export default (Bookshelf, options = {}) => {
 
                                     // Determine if there are multiple filters to be applied
                                     let valueArray = null;
-                                    if (isArray(typeValue)){
+                                    if (_isArray(typeValue)){
                                         valueArray = split(typeValue, ',');
                                     }
                                     else {
