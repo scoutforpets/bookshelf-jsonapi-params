@@ -16,6 +16,8 @@ import {
     zipObject as _zipObject
 } from 'lodash';
 
+import split from 'split-string';
+
 import inflection from 'inflection';
 
 import Paginator from 'bookshelf-page';
@@ -318,7 +320,13 @@ export default (Bookshelf, options = {}) => {
                                     typeKey = internals.formatRelation(internals.formatColumnNames([typeKey])[0]);
 
                                     // Determine if there are multiple filters to be applied
-                                    const valueArray = typeValue.toString().indexOf(',') !== -1 ? typeValue.split(',') : typeValue;
+                                    let valueArray = null;
+                                    if (isArray(typeValue)){
+                                        valueArray = split(typeValue, ',');
+                                    }
+                                    else {
+                                        valueArray = typeValue;
+                                    }
 
                                     // Attach different query for each type
                                     if (key === 'like'){
