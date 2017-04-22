@@ -589,4 +589,29 @@ describe('bookshelf-jsonapi-params', () => {
                 });
         });
     });
+
+    describe('pass a query builder function as fourth parameter', () => {
+
+        it('should sum up the ages of people that have an age of 25 or less', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        lte: {
+                            age: 25
+                        }
+                    }
+                }, false, undefined, (qb) => {
+
+                    qb.sum('age as ageSum');
+                })
+                .then((result) => {
+
+                    expect(result).to.be.an('object');
+                    expect(result.get('ageSum')).to.equal(37);
+                    done();
+                });
+        });
+    });
 });
