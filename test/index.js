@@ -116,6 +116,20 @@ describe('bookshelf-jsonapi-params', () => {
                     gender: 'm',
                     type: 'monster'
                 }),
+                PersonModel.forge().save({
+                    id: 4,
+                    firstName: 'Boo',
+                    age: 28,
+                    gender: 'f',
+                    type: 'nothing, here'
+                }),
+                PersonModel.forge().save({
+                    id: 5,
+                    firstName: 'Elmo',
+                    age: 3,
+                    gender: 'm',
+                    type: null
+                }),
                 PetModel.forge().save({
                     id: 1,
                     name: 'Big Bird',
@@ -168,7 +182,7 @@ describe('bookshelf-jsonapi-params', () => {
                 .fetchJsonApi()
                 .then((result) => {
 
-                    expect(result.models).to.have.length(3);
+                    expect(result.models).to.have.length(5);
                     done();
                 });
         });
@@ -208,6 +222,23 @@ describe('bookshelf-jsonapi-params', () => {
                 .then((result) => {
 
                     expect(result.models).to.have.length(1);
+                    done();
+                });
+        });
+
+        it('should return a single record with the matching type as null', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        type: null
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('firstName')).to.equal('Elmo');
                     done();
                 });
         });
@@ -293,9 +324,11 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(2);
+                    expect(result.models).to.have.length(4);
                     expect(result.models[0].get('firstName')).to.equal('Baby Bop');
                     expect(result.models[1].get('firstName')).to.equal('Cookie Monster');
+                    expect(result.models[2].get('firstName')).to.equal('Boo');
+                    expect(result.models[3].get('firstName')).to.equal('Elmo');
                     done();
                 });
         });
@@ -310,7 +343,7 @@ describe('bookshelf-jsonapi-params', () => {
                 .fetchJsonApi({
                     filter: {
                         not: {
-                            first_name: 'Barney,Baby Bop'
+                            first_name: 'Barney,Baby Bop,Boo,Elmo'
                         }
                     }
                 })
@@ -338,8 +371,9 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(1);
+                    expect(result.models).to.have.length(2);
                     expect(result.models[0].get('firstName')).to.equal('Barney');
+                    expect(result.models[1].get('firstName')).to.equal('Elmo');
                     done();
                 });
         });
@@ -360,9 +394,10 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(2);
+                    expect(result.models).to.have.length(3);
                     expect(result.models[0].get('firstName')).to.equal('Barney');
                     expect(result.models[1].get('firstName')).to.equal('Baby Bop');
+                    expect(result.models[2].get('firstName')).to.equal('Elmo');
                     done();
                 });
         });
@@ -383,8 +418,9 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(1);
+                    expect(result.models).to.have.length(2);
                     expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                    expect(result.models[1].get('firstName')).to.equal('Boo');
                     done();
                 });
         });
@@ -405,9 +441,10 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(2);
+                    expect(result.models).to.have.length(3);
                     expect(result.models[0].get('firstName')).to.equal('Baby Bop');
                     expect(result.models[1].get('firstName')).to.equal('Cookie Monster');
+                    expect(result.models[2].get('firstName')).to.equal('Boo');
                     done();
                 });
         });
@@ -470,8 +507,9 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(3);
-                    expect(result.models[0].get('type')).to.equal('monster');
+                    expect(result.models).to.have.length(5);
+                    expect(result.models[0].get('type')).to.equal(null);
+                    expect(result.models[1].get('type')).to.equal('monster');
                     done();
                 });
         });
@@ -485,7 +523,7 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(3);
+                    expect(result.models).to.have.length(5);
                     expect(result.models[0].get('type')).to.equal('triceratops');
                     done();
                 });
@@ -500,7 +538,7 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(3);
+                    expect(result.models).to.have.length(5);
                     expect(result.models[0].get('firstName')).to.equal('Baby Bop');
                     done();
                 });
@@ -515,8 +553,8 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(3);
-                    expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                    expect(result.models).to.have.length(5);
+                    expect(result.models[0].get('firstName')).to.equal('Elmo');
                     done();
                 });
         });
@@ -565,6 +603,36 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
+    describe('escape commas in filter', () => {
+        it('should escape the comma and find a result', (done) => {
+            PersonModel
+                .fetchJsonApi({
+                    filter: {
+                        type: 'nothing\\, here'
+                    }
+                }, false)
+                .then((result) => {
+
+                    expect(result).to.be.an('object');
+                    expect(result.get('firstName')).to.equal('Boo');
+                    done();
+                });
+        });
+        it('should find no results if comma is not escaped', (done) => {
+            PersonModel
+                .fetchJsonApi({
+                    filter: {
+                        type: 'nothing, here'
+                    }
+                }, false)
+                .then((result) => {
+
+                    expect(result).to.equal(null);
+                    done();
+                });
+        });
+    });
+
     describe('passing default paging parameters to the plugin', () => {
 
         before((done) => {
@@ -584,7 +652,7 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('id')).to.equal(1);
-                    expect(result.pagination.pageCount).to.equal(3);
+                    expect(result.pagination.pageCount).to.equal(5);
                     done();
                 });
         });

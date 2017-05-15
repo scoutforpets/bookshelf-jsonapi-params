@@ -10,11 +10,14 @@ import {
     isArray as _isArray,
     isObject as _isObject,
     isObjectLike as _isObjectLike,
+    isNull as _isNull,
     forIn as _forIn,
     keys as _keys,
     map as _map,
     zipObject as _zipObject
 } from 'lodash';
+
+import split from 'split-string';
 
 import inflection from 'inflection';
 
@@ -252,7 +255,10 @@ export default (Bookshelf, options = {}) => {
                     fieldNames[fieldKey] = _map(fieldNames[fieldKey], (value) => {
 
                         if (!fieldKey){
-                            return value;
+                            if (_includes(value, '.')){
+                                return value;
+                            }
+                            return `${internals.modelName}.${value}`;
                         }
                         return `${fieldKey}.${value}`;
                     });
@@ -318,7 +324,13 @@ export default (Bookshelf, options = {}) => {
                                     typeKey = internals.formatRelation(internals.formatColumnNames([typeKey])[0]);
 
                                     // Determine if there are multiple filters to be applied
-                                    const valueArray = typeValue.toString().indexOf(',') !== -1 ? typeValue.split(',') : typeValue;
+                                    let valueArray = null;
+                                    if (!_isArray(typeValue)){
+                                        valueArray = split(typeValue.toString(), ',');
+                                    }
+                                    else {
+                                        valueArray = typeValue;
+                                    }
 
                                     // Attach different query for each type
                                     if (key === 'like'){
@@ -382,9 +394,17 @@ export default (Bookshelf, options = {}) => {
                                 // Remove all but the last table name, need to get number of dots
                                 key = internals.formatRelation(internals.formatColumnNames([key])[0]);
 
-                                // Determine if there are multiple filters to be applied
-                                value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
-                                qb.whereIn(key, value);
+
+                                if (_isNull(value)){
+                                    qb.where(key, value);
+                                }
+                                else {
+                                    // Determine if there are multiple filters to be applied
+                                    if (!_isArray(value)){
+                                        value = split(value.toString(), ',');
+                                    }
+                                    qb.whereIn(key, value);
+                                }
                             }
                         }
                     });
