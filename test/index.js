@@ -52,7 +52,7 @@ describe('bookshelf-jsonapi-params', () => {
 
                 const aggregateFunctions = ['count', 'sum', 'avg', 'max', 'min'];
 
-                if (aggregateFunctions.some(f => key.includes(f))) {
+                if (_.some(aggregateFunctions, (f) => _.startsWith(key, f + '('))) {
                     result[key] = val;
                 } else {
                     result[_.snakeCase(key)] = val;
