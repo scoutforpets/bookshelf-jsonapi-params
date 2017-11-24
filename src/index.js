@@ -301,7 +301,7 @@ export default (Bookshelf, options = {}) => {
                             _forEach(fieldNames[fieldKey], (column) => {
 
                                 if (column.aggregateFunction) {
-                                    qb[column.aggregateFunction](column.column);
+                                    qb[column.aggregateFunction](`${column.column} as ${column.aggregateFunction}`);
                                 } else {
                                     qb.select([column]);
                                 }

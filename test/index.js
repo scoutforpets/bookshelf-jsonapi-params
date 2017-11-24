@@ -50,7 +50,14 @@ describe('bookshelf-jsonapi-params', () => {
 
             return _.reduce(attrs, (result, val, key) => {
 
-                result[_.snakeCase(key)] = val;
+                const aggregateFunctions = ['count', 'sum', 'avg', 'max', 'min'];
+
+                if (aggregateFunctions.some(f => key.includes(f))) {
+                    result[key] = val;
+                } else {
+                    result[_.snakeCase(key)] = val;
+                }
+
                 return result;
             }, {});
         },
@@ -633,6 +640,66 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
+    describe('passing a `fields` parameter with an aggregate function', () => {
+
+        it('should return the total count of records', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    fields: {
+                        person: ['count(id)']
+                    }
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('count')).to.equal(5);
+                    done();
+                });
+        });
+
+        it('should return the average age per gender', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    fields: {
+                        person: ['avg(age)','gender'],
+                    },
+                    group: ['gender']
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('gender')).to.equal('f');
+                    expect(result.models[0].get('avg')).to.equal((25 + 28) / 2);
+                    expect(result.models[1].get('gender')).to.equal('m');
+                    expect(result.models[1].get('avg')).to.equal((12 + 70 + 3) / 3);
+                    done();
+                });
+        });
+
+        it('should return the sum of the ages of persons with firstName containing \'Ba\'', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        like: {
+                            first_name: 'Ba'
+                        }
+                    },
+                    fields: {
+                        person: ['sum(age)'],
+                    },
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('sum')).to.equal(37);
+                    done();
+                });
+        });
+    });
+
     describe('passing default paging parameters to the plugin', () => {
 
         before((done) => {
@@ -657,4 +724,5 @@ describe('bookshelf-jsonapi-params', () => {
                 });
         });
     });
+
 });
