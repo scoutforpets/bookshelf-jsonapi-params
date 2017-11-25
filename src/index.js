@@ -267,13 +267,13 @@ export default (Bookshelf, options = {}) => {
 
                         // Extract any aggregate function around the column name
                         let column = value;
-                        let aggregateFunction = value.split('(')[0];
-                        const aggregateFunctions = ['count', 'sum', 'avg', 'max', 'min'];
+                        let aggregateFunction = null;
+                        const regex = new RegExp(/(count|sum|avg|max|min)\((.+)\)/g);
+                        const match = regex.exec(value);
 
-                        if (_includes(aggregateFunctions, aggregateFunction)) {
-                            column = column.split('(')[1].split(')')[0];
-                        } else {
-                            aggregateFunction = false;
+                        if (match) {
+                            aggregateFunction = match[1];
+                            column = match[2];
                         }
 
                         if (!fieldKey) {
