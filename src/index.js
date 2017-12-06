@@ -10,11 +10,14 @@ import {
     isArray as _isArray,
     isObject as _isObject,
     isObjectLike as _isObjectLike,
+    isNull as _isNull,
     forIn as _forIn,
     keys as _keys,
     map as _map,
     zipObject as _zipObject
 } from 'lodash';
+
+import split from 'split-string';
 
 import inflection from 'inflection';
 
@@ -62,7 +65,7 @@ export default (Bookshelf, options = {}) => {
         opts = opts || {};
 
         const internals = {};
-        const { include, fields, sort, page = {}, filter } = opts;
+        const { include, fields, sort, page = {}, filter, group } = opts;
         const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte'];
 
         // Get a reference to the field being used as the id
@@ -70,7 +73,7 @@ export default (Bookshelf, options = {}) => {
             this.constructor.prototype.idAttribute : 'id';
 
         // Get a reference to the current model name. Note that if no type is
-        // explcitly passed, the tableName will be used
+        // explicitly passed, the tableName will be used
         internals.modelName = type ? type : this.constructor.prototype.tableName;
 
         // Initialize an instance of the current model and clone the initial query
@@ -78,14 +81,15 @@ export default (Bookshelf, options = {}) => {
             this.constructor.forge().query((qb) => _assign(qb, this.query().clone()));
 
         /**
-         * Build a query for relational dependencies of filtering and sorting
+         * Build a query for relational dependencies of filtering, grouping and sorting
          * @param   filterValues {object}
+         * @param   groupValues {object}
          * @param   sortValues {object}
          */
-        internals.buildDependencies = (filterValues, sortValues) => {
+        internals.buildDependencies = (filterValues, groupValues, sortValues) => {
 
             const relationHash = {};
-            // Find relations in fitlerValues
+            // Find relations in filterValues
             if (_isObjectLike(filterValues) && !_isEmpty(filterValues)){
 
                 // Loop through each filter value
@@ -123,10 +127,20 @@ export default (Bookshelf, options = {}) => {
                 });
             }
 
+            // Find relations in groupValues
+            if (_isObjectLike(groupValues) && !_isEmpty(groupValues)){
+
+                // Loop through each group value
+                _forEach(groupValues, (value) => {
+
+                    // Add relations to the relationHash
+                    internals.buildDependenciesHelper(value, relationHash);
+                });
+            }
+
             // Need to select model.* so all of the relations are not returned, also check if there is anything in fields object
             if (_keys(relationHash).length && !_keys(fields).length){
                 internals.model.query((qb) => {
-
                     qb.select(`${internals.modelName}.*`);
                 });
             }
@@ -251,16 +265,31 @@ export default (Bookshelf, options = {}) => {
                     // Add qualifying table name to avoid ambiguous columns
                     fieldNames[fieldKey] = _map(fieldNames[fieldKey], (value) => {
 
-                        if (!fieldKey){
-                            return value;
+                        // Extract any aggregate function around the column name
+                        let column = value;
+                        let aggregateFunction = null;
+                        const regex = new RegExp(/(count|sum|avg|max|min)\((.+)\)/g);
+                        const match = regex.exec(value);
+
+                        if (match) {
+                            aggregateFunction = match[1];
+                            column = match[2];
                         }
-                        return `${fieldKey}.${value}`;
+
+                        if (!fieldKey) {
+                            if (!_includes(column, '.')) {
+                                column = `${internals.modelName}.${column}`;
+                            }
+                        } else {
+                            column = `${fieldKey}.${column}`;
+                        }
+
+                        return aggregateFunction ? { aggregateFunction, column } : column;
                     });
 
                     // Only process the field if it's not a relation. Fields
                     // for relations are processed in `buildIncludes()`
                     if (!_includes(include, fieldKey)) {
-
 
                         // Add columns to query
                         internals.model.query((qb) => {
@@ -269,7 +298,14 @@ export default (Bookshelf, options = {}) => {
                                 qb.distinct();
                             }
 
-                            qb.select(fieldNames[fieldKey]);
+                            _forEach(fieldNames[fieldKey], (column) => {
+
+                                if (column.aggregateFunction) {
+                                    qb[column.aggregateFunction](`${column.column} as ${column.aggregateFunction}`);
+                                } else {
+                                    qb.select([column]);
+                                }
+                            });
 
                             // JSON API considers relationships as fields, so we
                             // need to make sure the id of the relation is selected
@@ -278,7 +314,7 @@ export default (Bookshelf, options = {}) => {
                                 if (internals.isBelongsToRelation(relation, this)) {
                                     const relatedData = this.related(relation).relatedData;
                                     const relationId = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
-                                    qb.select(relationId);
+                                    qb.select(`${internals.modelName}.${relationId}`);
                                 }
                             });
                         });
@@ -318,7 +354,13 @@ export default (Bookshelf, options = {}) => {
                                     typeKey = internals.formatRelation(internals.formatColumnNames([typeKey])[0]);
 
                                     // Determine if there are multiple filters to be applied
-                                    const valueArray = typeValue.toString().indexOf(',') !== -1 ? typeValue.split(',') : typeValue;
+                                    let valueArray = null;
+                                    if (!_isArray(typeValue)){
+                                        valueArray = split(typeValue.toString(), ',');
+                                    }
+                                    else {
+                                        valueArray = typeValue;
+                                    }
 
                                     // Attach different query for each type
                                     if (key === 'like'){
@@ -382,9 +424,17 @@ export default (Bookshelf, options = {}) => {
                                 // Remove all but the last table name, need to get number of dots
                                 key = internals.formatRelation(internals.formatColumnNames([key])[0]);
 
-                                // Determine if there are multiple filters to be applied
-                                value = value.toString().indexOf(',') !== -1 ? value.split(',') : value;
-                                qb.whereIn(key, value);
+
+                                if (_isNull(value)){
+                                    qb.where(key, value);
+                                }
+                                else {
+                                    // Determine if there are multiple filters to be applied
+                                    if (!_isArray(value)){
+                                        value = split(value.toString(), ',');
+                                    }
+                                    qb.whereIn(key, value);
+                                }
                             }
                         }
                     });
@@ -501,6 +551,26 @@ export default (Bookshelf, options = {}) => {
         };
 
         /**
+         * Build a query based on the `group` parameter.
+         * @param  groupValues {array}
+         */
+        internals.buildGroup = (groupValues = []) => {
+
+            if (_isArray(groupValues) && !_isEmpty(groupValues)) {
+
+                groupValues = internals.formatColumnNames(groupValues);
+
+                internals.model.query((qb) => {
+
+                    _forEach(groupValues, (groupBy) => {
+
+                        qb.groupBy(groupBy);
+                    });
+                });
+            }
+        };
+
+        /**
          * Processes incoming parameters that represent columns names and
          * formats them using the internal {@link Model#format} function.
          * @param  columnNames {array}
@@ -612,18 +682,20 @@ export default (Bookshelf, options = {}) => {
         /// Process parameters
         ////////////////////////////////
 
-        // Apply relational dependencies for filters and sorting
-        internals.buildDependencies(filter, sort);
+        // Apply relational dependencies for filters, grouping and sorting
+        internals.buildDependencies(filter, group, sort);
 
         // Apply filters
         internals.buildFilters(filter);
+
+        // Apply grouping
+        internals.buildGroup(group);
 
         // Apply sorting
         internals.buildSort(sort);
 
         // Apply relations
         internals.buildIncludes(include);
-
 
         // Apply sparse fieldsets
         internals.buildFields(fields);
