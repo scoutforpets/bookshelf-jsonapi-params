@@ -611,6 +611,7 @@ describe('bookshelf-jsonapi-params', () => {
     });
 
     describe('escape commas in filter', () => {
+
         it('should escape the comma and find a result', (done) => {
             PersonModel
                 .fetchJsonApi({
@@ -640,6 +641,30 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
+    describe('like filtering on non-text fields', () => {
+
+        it('should return the should return all record that have an age that contains the digit "2"', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        like: {
+                            age: '2'
+                        }
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('firstName')).to.equal('Barney');
+                    expect(result.models[1].get('firstName')).to.equal('Baby Bop');
+                    expect(result.models[2].get('firstName')).to.equal('Boo');
+                    done();
+                });
+        });
+    });
+
     describe('passing a `fields` parameter with an aggregate function', () => {
 
         it('should return the total count of records', (done) => {
@@ -664,7 +689,7 @@ describe('bookshelf-jsonapi-params', () => {
                 .forge()
                 .fetchJsonApi({
                     fields: {
-                        person: ['avg(age)','gender'],
+                        person: ['avg(age)','gender']
                     },
                     group: ['gender']
                 })
@@ -689,8 +714,8 @@ describe('bookshelf-jsonapi-params', () => {
                         }
                     },
                     fields: {
-                        person: ['sum(age)'],
-                    },
+                        person: ['sum(age)']
+                    }
                 })
                 .then((result) => {
                     expect(result.models).to.have.length(1);

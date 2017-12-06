@@ -365,18 +365,17 @@ export default (Bookshelf, options = {}) => {
                                     // Attach different query for each type
                                     if (key === 'like'){
 
-                                        // Need to add double quotes for each table/column name, this is needed if there is a relationship with a capital letter
-                                        const formatedKey = `"${typeKey.replace('.', '"."')}"`;
                                         qb.where((qbWhere) => {
 
                                             if (_isArray(valueArray)){
                                                 let where = 'where';
                                                 _forEach(valueArray, (val) => {
 
-                                                    val = `%${val}%`;
-
                                                     qbWhere[where](
-                                                        Bookshelf.knex.raw(`LOWER(${formatedKey}) like LOWER(?)`, [val])
+                                                        Bookshelf.knex.raw('LOWER(CAST(:typeKey: AS text)) like LOWER(:value)', {
+                                                            value: `%${val}%`,
+                                                            typeKey
+                                                        })
                                                     );
 
                                                     // Change to orWhere after the first where
@@ -387,7 +386,10 @@ export default (Bookshelf, options = {}) => {
                                             }
                                             else {
                                                 qbWhere.where(
-                                                    Bookshelf.knex.raw(`LOWER(${formatedKey}) like LOWER(?)`, [`%${typeValue}%`])
+                                                    Bookshelf.knex.raw('LOWER(CAST(:typeKey: AS text)) like LOWER(:value)', {
+                                                        value: `%${val}%`,
+                                                        typeKey
+                                                    })
                                                 );
                                             }
 
