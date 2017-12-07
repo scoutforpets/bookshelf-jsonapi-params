@@ -76,6 +76,13 @@ export default (Bookshelf, options = {}) => {
         // explicitly passed, the tableName will be used
         internals.modelName = type ? type : this.constructor.prototype.tableName;
 
+        // Used to determine which casting syntax is valid
+        internals.client = Bookshelf.knex.client.config.client;
+        internals.textType = 'text';
+        if (internals.client === 'mysql' && internals.client === 'mssql'){
+            internals.textType = 'char';
+        }
+
         // Initialize an instance of the current model and clone the initial query
         internals.model =
             this.constructor.forge().query((qb) => _assign(qb, this.query().clone()));
@@ -372,7 +379,7 @@ export default (Bookshelf, options = {}) => {
                                                 _forEach(valueArray, (val) => {
 
                                                     qbWhere[where](
-                                                        Bookshelf.knex.raw('LOWER(CAST(:typeKey: AS text)) like LOWER(:value)', {
+                                                        Bookshelf.knex.raw(`LOWER(CAST(:typeKey: AS ${internals.textType})) like LOWER(:value)`, {
                                                             value: `%${val}%`,
                                                             typeKey
                                                         })
@@ -386,7 +393,7 @@ export default (Bookshelf, options = {}) => {
                                             }
                                             else {
                                                 qbWhere.where(
-                                                    Bookshelf.knex.raw('LOWER(CAST(:typeKey: AS text)) like LOWER(:value)', {
+                                                    Bookshelf.knex.raw(`LOWER(CAST(:typeKey: AS ${internals.textType})) like LOWER(:value)`, {
                                                         value: `%${val}%`,
                                                         typeKey
                                                     })
