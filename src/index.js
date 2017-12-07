@@ -76,6 +76,13 @@ export default (Bookshelf, options = {}) => {
         // explicitly passed, the tableName will be used
         internals.modelName = type ? type : this.constructor.prototype.tableName;
 
+        // Used to determine which casting syntax is valid
+        internals.client = Bookshelf.knex.client.config.client;
+        internals.textType = 'text';
+        if (internals.client === 'mysql' && internals.client === 'mssql'){
+            internals.textType = 'char';
+        }
+
         // Initialize an instance of the current model and clone the initial query
         internals.model =
             this.constructor.forge().query((qb) => _assign(qb, this.query().clone()));
@@ -365,18 +372,17 @@ export default (Bookshelf, options = {}) => {
                                     // Attach different query for each type
                                     if (key === 'like'){
 
-                                        // Need to add double quotes for each table/column name, this is needed if there is a relationship with a capital letter
-                                        const formatedKey = `"${typeKey.replace('.', '"."')}"`;
                                         qb.where((qbWhere) => {
 
                                             if (_isArray(valueArray)){
                                                 let where = 'where';
                                                 _forEach(valueArray, (val) => {
 
-                                                    val = `%${val}%`;
-
                                                     qbWhere[where](
-                                                        Bookshelf.knex.raw(`LOWER(${formatedKey}) like LOWER(?)`, [val])
+                                                        Bookshelf.knex.raw(`LOWER(CAST(:typeKey: AS ${internals.textType})) like LOWER(:value)`, {
+                                                            value: `%${val}%`,
+                                                            typeKey
+                                                        })
                                                     );
 
                                                     // Change to orWhere after the first where
@@ -387,7 +393,10 @@ export default (Bookshelf, options = {}) => {
                                             }
                                             else {
                                                 qbWhere.where(
-                                                    Bookshelf.knex.raw(`LOWER(${formatedKey}) like LOWER(?)`, [`%${typeValue}%`])
+                                                    Bookshelf.knex.raw(`LOWER(CAST(:typeKey: AS ${internals.textType})) like LOWER(:value)`, {
+                                                        value: `%${val}%`,
+                                                        typeKey
+                                                    })
                                                 );
                                             }
 
