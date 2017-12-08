@@ -176,7 +176,7 @@ describe('bookshelf-jsonapi-params', () => {
                 .where({ id: 1 })
                 .fetchJsonApi(null, false)
                 .then((person) => {
-                    console.log(person);
+
                     expect(person.get('firstName')).to.equal('Barney');
                     expect(person.get('gender')).to.equal('m');
                     done();
