@@ -28,7 +28,10 @@
     "url": "https://github.com/jamesdixon"
   },
   "contributors": [
-      { "name": "Alec Hirsch", "email": "alech1215@gmail.com" }
+    {
+      "name": "Alec Hirsch",
+      "email": "alech1215@gmail.com"
+    }
   ],
   "license": "MIT",
   "bugs": {
