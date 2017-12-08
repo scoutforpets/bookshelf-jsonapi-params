@@ -1,6 +1,6 @@
 {
   "name": "bookshelf-jsonapi-params",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0",
   "description": "Automatically applies relations, filters, and more from the JSON API spec to your Bookshelf.js results",
   "main": "./dist/index.js",
   "options": {
@@ -27,6 +27,9 @@
     "email": "jim.w.dixon@gmail.com",
     "url": "https://github.com/jamesdixon"
   },
+  "contributors": [
+      { "name": "Alec Hirsch", "email": "alech1215@gmail.com" }
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/scoutforpets/bookshelf-jsonapi-params/issues"
