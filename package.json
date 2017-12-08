@@ -1,6 +1,6 @@
 {
   "name": "bookshelf-jsonapi-params",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0",
   "description": "Automatically applies relations, filters, and more from the JSON API spec to your Bookshelf.js results",
   "main": "./dist/index.js",
   "options": {
@@ -27,6 +27,9 @@
     "email": "jim.w.dixon@gmail.com",
     "url": "https://github.com/jamesdixon"
   },
+  "contributors": [
+      { "name": "Alec Hirsch", "email": "alech1215@gmail.com" }
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/scoutforpets/bookshelf-jsonapi-params/issues"
@@ -36,18 +39,18 @@
     "babel-cli": "6.26.0",
     "babel-core": "6.26.0",
     "babel-plugin-add-module-exports": "0.2.1",
-    "babel-plugin-syntax-object-rest-spread": "6.8.0",
-    "babel-plugin-transform-object-rest-spread": "6.8.0",
-    "babel-preset-es2015": "6.9.0",
-    "bluebird": "3.4.0",
-    "bookshelf": "0.9.5",
     "chai": "3.5.0",
     "eslint": "2.11.1",
     "eslint-config-hapi": "9.1.0",
     "eslint-plugin-hapi": "4.0.0",
-    "knex": "0.11.5",
     "mocha": "2.5.3",
-    "sqlite3": "3.1.4"
+    "babel-plugin-syntax-object-rest-spread": "6.13.0",
+    "babel-plugin-transform-object-rest-spread": "6.26.0",
+    "babel-preset-es2015": "6.24.1",
+    "bluebird": "3.5.1",
+    "bookshelf": "0.12.0",
+    "knex": "0.14.2",
+    "sqlite3": "3.1.13"
   },
   "engines": {
     "iojs": ">= 1.0.0",
@@ -55,8 +58,8 @@
   },
   "dependencies": {
     "bookshelf-page": "0.3.2",
-    "inflection": "^1.10.0",
-    "lodash": "4.13.1",
-    "split-string": "^0.1.1"
+    "inflection": "^1.12.0",
+    "lodash": "4.17.4",
+    "split-string": "^4.0.0"
   }
 }

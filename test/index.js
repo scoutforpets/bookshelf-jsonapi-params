@@ -54,7 +54,8 @@ describe('bookshelf-jsonapi-params', () => {
 
                 if (_.some(aggregateFunctions, (f) => _.startsWith(key, f + '('))) {
                     result[key] = val;
-                } else {
+                }
+                else {
                     result[_.snakeCase(key)] = val;
                 }
 
@@ -79,92 +80,92 @@ describe('bookshelf-jsonapi-params', () => {
             repository.knex.schema.dropTableIfExists('person'),
             repository.knex.schema.dropTableIfExists('pet')
         )
-        .then(() => {
+            .then(() => {
 
-            return Promise.join(
-                repository.knex.schema.createTable('person', (table) => {
+                return Promise.join(
+                    repository.knex.schema.createTable('person', (table) => {
 
-                    table.increments('id').primary();
-                    table.string('first_name');
-                    table.integer('age');
-                    table.string('gender');
-                    table.string('type');
-                }),
-                repository.knex.schema.createTable('pet', (table) => {
+                        table.increments('id').primary();
+                        table.string('first_name');
+                        table.integer('age');
+                        table.string('gender');
+                        table.string('type');
+                    }),
+                    repository.knex.schema.createTable('pet', (table) => {
 
-                    table.increments('id').primary();
-                    table.string('name');
-                    table.integer('person_id');
-                })
-            );
-        })
-        .then(() => {
+                        table.increments('id').primary();
+                        table.string('name');
+                        table.integer('person_id');
+                    })
+                );
+            })
+            .then(() => {
 
-            return Promise.join(
-                PersonModel.forge().save({
-                    id: 1,
-                    firstName: 'Barney',
-                    age: 12,
-                    gender: 'm',
-                    type: 't-rex'
-                }),
-                PersonModel.forge().save({
-                    id: 2,
-                    firstName: 'Baby Bop',
-                    age: 25,
-                    gender: 'f',
-                    type: 'triceratops'
+                return Promise.join(
+                    PersonModel.forge().save({
+                        id: 1,
+                        firstName: 'Barney',
+                        age: 12,
+                        gender: 'm',
+                        type: 't-rex'
+                    }),
+                    PersonModel.forge().save({
+                        id: 2,
+                        firstName: 'Baby Bop',
+                        age: 25,
+                        gender: 'f',
+                        type: 'triceratops'
 
-                }),
-                PersonModel.forge().save({
-                    id: 3,
-                    firstName: 'Cookie Monster',
-                    age: 70,
-                    gender: 'm',
-                    type: 'monster'
-                }),
-                PersonModel.forge().save({
-                    id: 4,
-                    firstName: 'Boo',
-                    age: 28,
-                    gender: 'f',
-                    type: 'nothing, here'
-                }),
-                PersonModel.forge().save({
-                    id: 5,
-                    firstName: 'Elmo',
-                    age: 3,
-                    gender: 'm',
-                    type: null
-                }),
-                PetModel.forge().save({
-                    id: 1,
-                    name: 'Big Bird',
-                    person_id: 1
-                }),
-                PetModel.forge().save({
-                    id: 2,
-                    name: 'Godzilla',
-                    person_id: 2
-                }),
-                PetModel.forge().save({
-                    id: 3,
-                    name: 'Patches',
-                    person_id: 3
-                })
-            );
-        })
-        .then(() => done());
+                    }),
+                    PersonModel.forge().save({
+                        id: 3,
+                        firstName: 'Cookie Monster',
+                        age: 70,
+                        gender: 'm',
+                        type: 'monster'
+                    }),
+                    PersonModel.forge().save({
+                        id: 4,
+                        firstName: 'Boo',
+                        age: 28,
+                        gender: 'f',
+                        type: 'nothing, here'
+                    }),
+                    PersonModel.forge().save({
+                        id: 5,
+                        firstName: 'Elmo',
+                        age: 3,
+                        gender: 'm',
+                        type: null
+                    }),
+                    PetModel.forge().save({
+                        id: 1,
+                        name: 'Big Bird',
+                        person_id: 1
+                    }),
+                    PetModel.forge().save({
+                        id: 2,
+                        name: 'Godzilla',
+                        person_id: 2
+                    }),
+                    PetModel.forge().save({
+                        id: 3,
+                        name: 'Patches',
+                        person_id: 3
+                    })
+                );
+            })
+            .then(() => done());
     });
 
     after((done) => {
 
         // Drop the tables when tests are complete
         Promise.join(
-          repository.knex.schema.dropTableIfExists('person'),
-          repository.knex.schema.dropTableIfExists('pet')
+            repository.knex.schema.dropTableIfExists('person'),
+            repository.knex.schema.dropTableIfExists('pet')
         )
-        .then(() => done());
+            .then(() => done());
     });
 
     describe('passing no parameters', () => {
@@ -613,7 +614,9 @@ describe('bookshelf-jsonapi-params', () => {
     describe('escape commas in filter', () => {
 
         it('should escape the comma and find a result', (done) => {
+
             PersonModel
+                .forge()
                 .fetchJsonApi({
                     filter: {
                         type: 'nothing\\, here'
@@ -626,8 +629,11 @@ describe('bookshelf-jsonapi-params', () => {
                     done();
                 });
         });
+
         it('should find no results if comma is not escaped', (done) => {
+
             PersonModel
+                .forge()
                 .fetchJsonApi({
                     filter: {
                         type: 'nothing, here'
@@ -677,6 +683,7 @@ describe('bookshelf-jsonapi-params', () => {
                     }
                 })
                 .then((result) => {
+
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('count')).to.equal(5);
                     done();
@@ -694,6 +701,7 @@ describe('bookshelf-jsonapi-params', () => {
                     group: ['gender']
                 })
                 .then((result) => {
+
                     expect(result.models).to.have.length(2);
                     expect(result.models[0].get('gender')).to.equal('f');
                     expect(result.models[0].get('avg')).to.equal((25 + 28) / 2);
@@ -718,6 +726,7 @@ describe('bookshelf-jsonapi-params', () => {
                     }
                 })
                 .then((result) => {
+
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('sum')).to.equal(37);
                     done();
