@@ -554,7 +554,19 @@ export default (Bookshelf, options = {}) => {
 
                 _forEach(sortValues, (sortBy) => {
 
-                    internals.model.orderBy(sortBy, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
+                    const sortOrder = sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc';
+
+                    // Match an expression between parenthesis
+                    const regex = new RegExp(/\((.+)\)/g);
+                    const match = regex.exec(sortBy);
+
+                    if (match) {
+                        internals.model.query((qb) => {
+                            qb.orderByRaw(`${sortBy} ${sortOrder}`);
+                        });
+                    } else {
+                        internals.model.orderBy(sortBy, sortOrder);
+                    }
                 });
             }
         };
