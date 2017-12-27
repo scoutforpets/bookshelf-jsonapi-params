@@ -50,9 +50,8 @@ describe('bookshelf-jsonapi-params', () => {
 
             return _.reduce(attrs, (result, val, key) => {
 
-                const aggregateFunctions = ['count', 'sum', 'avg', 'max', 'min'];
-
-                if (_.some(aggregateFunctions, (f) => _.startsWith(key, f + '('))) {
+                if (_.some(['count', 'sum', 'avg', 'max', 'min'], (f) => _.startsWith(key, f + '(')) ||
+                    _.startsWith(key, '(')) {
                     result[key] = val;
                 }
                 else {
@@ -563,6 +562,20 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(5);
                     expect(result.models[0].get('firstName')).to.equal('Elmo');
+                    done();
+                });
+        });
+
+        it('should return records sorted by firstName with female first', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    sort: ['-(gender=\'f\')', 'firstName']
+                })
+                .then((result) => {
+                    const names = result.models.map((m) => m.get('firstName'));
+                    expect(names).to.deep.equal(['Baby Bop', 'Boo', 'Barney', 'Cookie Monster', 'Elmo']);
                     done();
                 });
         });
