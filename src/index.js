@@ -556,7 +556,7 @@ export default (Bookshelf, options = {}) => {
 
                     const sortOrder = sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc';
 
-                    // Match an expression between parenthesis
+                    // Match an expression between parentheses
                     const regex = new RegExp(/\((.+)\)/g);
                     const match = regex.exec(sortBy);
 
