@@ -24,11 +24,24 @@ describe('bookshelf-jsonapi-params', () => {
     }));
 
     // Create models
+
+    const ToyModel = repository.Model.extend({
+        tableName: 'toy',
+        pet: function () {
+
+            return this.belongsTo(PetModel);
+        }
+    });
+
     const PetModel = repository.Model.extend({
         tableName: 'pet',
         person: function () {
 
             return this.belongsTo(PersonModel);
+        },
+        toy: function () {
+
+            return this.hasOne(ToyModel);
         }
     });
 
@@ -78,7 +91,8 @@ describe('bookshelf-jsonapi-params', () => {
         // Build the schema and add some data
         Promise.join(
             repository.knex.schema.dropTableIfExists('person'),
-            repository.knex.schema.dropTableIfExists('pet')
+            repository.knex.schema.dropTableIfExists('pet'),
+            repository.knex.schema.dropTableIfExists('toy')
         )
             .then(() => {
 
@@ -96,6 +110,12 @@ describe('bookshelf-jsonapi-params', () => {
                         table.increments('id').primary();
                         table.string('name');
                         table.integer('person_id');
+                    }),
+                    repository.knex.schema.createTable('toy', (table) => {
+
+                        table.increments('id').primary();
+                        table.string('type');
+                        table.integer('pet_id');
                     })
                 );
             })
@@ -152,6 +172,16 @@ describe('bookshelf-jsonapi-params', () => {
                         id: 3,
                         name: 'Patches',
                         person_id: 3
+                    }),
+                    ToyModel.forge().save({
+                        id: 1,
+                        type: 'skate',
+                        pet_id: 1
+                    }),
+                    ToyModel.forge().save({
+                        id: 2,
+                        type: 'car',
+                        pet_id: 2
                     })
                 );
             })
@@ -163,7 +193,8 @@ describe('bookshelf-jsonapi-params', () => {
         // Drop the tables when tests are complete
         Promise.join(
             repository.knex.schema.dropTableIfExists('person'),
-            repository.knex.schema.dropTableIfExists('pet')
+            repository.knex.schema.dropTableIfExists('pet'),
+            repository.knex.schema.dropTableIfExists('toy')
         )
             .then(() => done());
     });
@@ -563,6 +594,22 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(5);
                     expect(result.models[0].get('firstName')).to.equal('Elmo');
+                    done();
+                });
+        });
+
+        it('should sort on deeply nested resources', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    include: ['pets', 'pets.toy'],
+                    sort: ['-pets.toy.type']
+                })
+                .then((result) => {
+
+                    expect(result.models[0].related('pets').related('toy').get('type')).to.equal('skate');
+                    expect(result.models[1].related('pets').related('toy').get('type')).to.equal('car');
                     done();
                 });
         });

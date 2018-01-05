@@ -554,7 +554,10 @@ export default (Bookshelf, options = {}) => {
 
                 _forEach(sortValues, (sortBy) => {
 
-                    internals.model.orderBy(sortBy, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
+                    internals.model.orderBy(
+                        sortBy && internals.formatRelation(sortBy),
+                        sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc'
+                    );
                 });
             }
         };
