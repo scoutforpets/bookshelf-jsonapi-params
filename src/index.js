@@ -424,10 +424,10 @@ export default (Bookshelf, options = {}) => {
                                         qb.where(typeKey, '>=', typeValue);
                                     }
                                     else if (key === 'notNull'){
-                                        qb.where(typeKey, 'IS NOT NULL');
+                                        qb.where('IS NOT NULL', typeValue);
                                     }
                                     else if (key === 'isNull'){
-                                        qb.where(typeKey, 'IS NULL');
+                                        qb.where('IS NULL', typeValue);
                                     }
                                 });
                             }
