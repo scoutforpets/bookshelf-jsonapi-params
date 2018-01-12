@@ -1,6 +1,6 @@
 {
   "name": "@waypointhomes/bookshelf-jsonapi-params-extension",
-  "version": "1.0.1",
+  "version": "1.0.11",
   "description": "Automatically applies relations, filters, and more from the JSON API spec to your Bookshelf.js results",
   "main": "./dist/index.js",
   "options": {

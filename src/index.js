@@ -66,7 +66,7 @@ export default (Bookshelf, options = {}) => {
 
         const internals = {};
         const { include, fields, sort, page = {}, filter, group } = opts;
-        const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte'];
+        const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte', 'notNull', 'isNull'];
 
         // Get a reference to the field being used as the id
         internals.idAttribute = this.constructor.prototype.idAttribute ?
@@ -408,6 +408,12 @@ export default (Bookshelf, options = {}) => {
                                             }
                                         });
                                     }
+                                    else if (key === 'notNull'){
+                                        qb.whereNotNull(typeValue);
+                                    }
+                                    else if (key === 'isNull'){
+                                        qb.whereNull(typeValue);
+                                    }
                                     else if (key === 'not'){
                                         qb.whereNotIn(typeKey, valueArray);
                                     }
@@ -422,12 +428,6 @@ export default (Bookshelf, options = {}) => {
                                     }
                                     else if (key === 'gte'){
                                         qb.where(typeKey, '>=', typeValue);
-                                    }
-                                    else if (key === 'notNull'){
-                                        qb.where('IS NOT NULL', typeValue);
-                                    }
-                                    else if (key === 'isNull'){
-                                        qb.where('IS NULL', typeValue);
                                     }
                                 });
                             }
