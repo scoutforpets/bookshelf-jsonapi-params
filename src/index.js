@@ -423,6 +423,12 @@ export default (Bookshelf, options = {}) => {
                                     else if (key === 'gte'){
                                         qb.where(typeKey, '>=', typeValue);
                                     }
+                                    else if (key === 'notNull'){
+                                        qb.where(typeKey, 'IS NOT NULL');
+                                    }
+                                    else if (key === 'isNull'){
+                                        qb.where(typeKey, 'IS NULL');
+                                    }
                                 });
                             }
                         }
