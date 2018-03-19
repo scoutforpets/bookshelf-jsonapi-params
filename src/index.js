@@ -409,6 +409,10 @@ export default (Bookshelf, options = {}) => {
                                         });
                                     }
                                     else if (key === 'not'){
+                                        if (valueArray.includes('null')) {
+                                            qb.whereNotNull(typeKey);
+                                            valueArray = valueArray.filter((val) => val !== 'null');
+                                        }
                                         qb.whereNotIn(typeKey, valueArray);
                                     }
                                     else if (key === 'lt'){
