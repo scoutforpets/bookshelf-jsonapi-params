@@ -300,6 +300,22 @@ describe('bookshelf-jsonapi-params', () => {
                     done();
                 });
         });
+
+        it('should return a single record that matches both filters with a null', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        type: 'null,t-rex'
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    done();
+                });
+        });
     });
 
     describe('passing a `filter[like]` parameter with a single filter', () => {
@@ -371,6 +387,48 @@ describe('bookshelf-jsonapi-params', () => {
                     done();
                 });
         });
+
+        it('should return all records that do not match filter[not] with null', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        not: {
+                            type: null
+                        }
+                    }
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(4);
+                    expect(result.models[0].get('type')).to.equal('t-rex');
+                    expect(result.models[1].get('type')).to.equal('triceratops');
+                    expect(result.models[2].get('type')).to.equal('monster');
+                    expect(result.models[3].get('type')).to.equal('nothing, here');
+                    done();
+                });
+        });
+
+        it('should return all records that do not match filter[not] with null as a string', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        not: {
+                            type: 'null'
+                        }
+                    }
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(4);
+                    expect(result.models[0].get('type')).to.equal('t-rex');
+                    expect(result.models[1].get('type')).to.equal('triceratops');
+                    expect(result.models[2].get('type')).to.equal('monster');
+                    expect(result.models[3].get('type')).to.equal('nothing, here');
+                    done();
+                });
+        });
     });
 
     describe('passing a `filter[not]` parameter with multiple filters', () => {
@@ -390,6 +448,26 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                    done();
+                });
+        });
+
+        it('should return all records that do not match filter[not] including null', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        not: {
+                            type: 'null,t-rex'
+                        }
+                    }
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('type')).to.equal('triceratops');
+                    expect(result.models[1].get('type')).to.equal('monster');
+                    expect(result.models[2].get('type')).to.equal('nothing, here');
                     done();
                 });
         });
