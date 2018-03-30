@@ -181,7 +181,20 @@ export default (Bookshelf, options = {}) => {
                                      `${relationKey}.${foreignKey}`);
                 }
                 else if (relatedData.type === 'belongsTo'){
-                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`, `${parentKey}.${foreignKey}`, `${relationKey}.${relatedData.targetIdAttribute}`);
+                    if (relatedData.throughTableName){
+                        const throughTableAlias = `${relationKey}_${relatedData.throughTableName}_pivot`;
+                        qb.leftOuterJoin(`${relatedData.throughTableName} as ${throughTableAlias}`,
+                                        `${parentKey}.${relatedData.parentIdAttribute}`,
+                                        `${throughTableAlias}.${relatedData.throughIdAttribute}`);
+                        qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
+                                        `${throughTableAlias}.${foreignKey}`,
+                                        `${relationKey}.${relatedData.targetIdAttribute}`);
+                    }
+                    else {
+                        qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
+                                        `${parentKey}.${foreignKey}`,
+                                        `${relationKey}.${relatedData.targetIdAttribute}`);
+                    }
                 }
                 else if (relatedData.type === 'belongsToMany'){
                     const otherKey = relatedData.otherKey ? relatedData.otherKey : `${inflection.singularize(relatedData.targetTableName)}_id`;
