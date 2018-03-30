@@ -781,6 +781,67 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
+    describe('passing in an additional query', () => {
+
+        it('should return the total count of records', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({}, undefined, undefined, (qb) => {
+
+                    qb.count('id');
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('countId')).to.equal(5);
+                    done();
+                });
+        });
+
+        it('should return the average age per gender', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({}, undefined, undefined, (qb) => {
+
+                    qb.groupBy('gender').select('gender').avg('age');
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('gender')).to.equal('f');
+                    expect(result.models[0].get('avgAge')).to.equal((25 + 28) / 2);
+                    expect(result.models[1].get('gender')).to.equal('m');
+                    expect(result.models[1].get('avgAge')).to.equal((12 + 70 + 3) / 3);
+                    done();
+                });
+        });
+
+        it('should return the sum of the ages of persons with firstName containing \'Ba\'', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        like: {
+                            first_name: 'Ba'
+                        }
+                    }
+                }, undefined, undefined, (qb) => {
+
+                    qb.sum('age');
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('sumAge')).to.equal(37);
+                    done();
+                });
+        });
+    });
+
+
     describe('passing default paging parameters to the plugin', () => {
 
         before((done) => {
