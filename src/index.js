@@ -286,26 +286,15 @@ export default (Bookshelf, options = {}) => {
                     // Add qualifying table name to avoid ambiguous columns
                     fieldNames[fieldKey] = _map(fieldNames[fieldKey], (value) => {
 
-                        // Extract any aggregate function around the column name
-                        let column = value;
-                        let aggregateFunction = null;
-                        const regex = new RegExp(/(count|sum|avg|max|min)\((.+)\)/g);
-                        const match = regex.exec(value);
-
-                        if (match) {
-                            aggregateFunction = match[1];
-                            column = match[2];
-                        }
-
                         if (!fieldKey) {
-                            if (!_includes(column, '.')) {
-                                column = `${internals.modelName}.${column}`;
+                            if (!_includes(value, '.')) {
+                                value = `${internals.modelName}.${value}`;
                             }
                         } else {
-                            column = `${fieldKey}.${column}`;
+                            value = `${fieldKey}.${value}`;
                         }
 
-                        return aggregateFunction ? { aggregateFunction, column } : column;
+                        return value;
                     });
 
                     // Only process the field if it's not a relation. Fields
@@ -321,8 +310,9 @@ export default (Bookshelf, options = {}) => {
 
                             _forEach(fieldNames[fieldKey], (column) => {
 
-                                if (column.aggregateFunction) {
-                                    qb[column.aggregateFunction](`${column.column} as ${column.aggregateFunction}`);
+                                var extract = internals.extractFunction(column);
+                                if (extract) {
+                                    qb[extract.function](`${extract.column} as ${extract.function}`);
                                 } else {
                                     qb.select([column]);
                                 }
@@ -373,6 +363,11 @@ export default (Bookshelf, options = {}) => {
 
                                     // Remove all but the last table name, need to get number of dots
                                     typeKey = internals.formatRelation(internals.formatColumnNames([typeKey])[0]);
+
+                                    var extract = internals.extractFunction(typeKey);
+                                    if (extract) {
+                                        typeKey = Bookshelf.knex.raw(`${extract.function}(??)`, extract.column);
+                                    }
 
                                     // Determine if there are multiple filters to be applied
                                     let valueArray = null;
@@ -447,6 +442,10 @@ export default (Bookshelf, options = {}) => {
                                 // Remove all but the last table name, need to get number of dots
                                 key = internals.formatRelation(internals.formatColumnNames([key])[0]);
 
+                                var extract = internals.extractFunction(key);
+                                if (extract) {
+                                    key = Bookshelf.knex.raw(`${extract.function}(??)`, extract.column);
+                                }
 
                                 if (_isNull(value)){
                                     qb.where(key, value);
@@ -463,6 +462,30 @@ export default (Bookshelf, options = {}) => {
                     });
                 });
             }
+        };
+
+        /**
+         * Extract any function around an attribute string
+         * Example: 'table1.sum(column)' => { function: 'sum', column: 'table1.column' }
+         * @param   attribute {string}
+         * @return  {object}
+         */
+        internals.extractFunction = (attribute) => {
+            const regex = new RegExp(/(.*)(count|sum|avg|max|min|lower|upper)\((.+)\)/g);
+            const match = regex.exec(attribute);
+
+            if (match) {
+                const prefix = match[1]
+                const func = match[2];
+                const column = match[3];
+
+                return {
+                    function: func,
+                    column: `${prefix}${column}`,
+                };
+            }
+
+            return null;
         };
 
         /**
