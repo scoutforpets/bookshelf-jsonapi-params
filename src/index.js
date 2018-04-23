@@ -372,7 +372,7 @@ export default (Bookshelf, options = {}) => {
                                     // Determine if there are multiple filters to be applied
                                     let valueArray = null;
                                     if (!_isArray(typeValue)){
-                                        valueArray = split(typeValue.toString(), ',');
+                                        valueArray = typeValue !== null && typeValue !== 'null' ? split(typeValue.toString(), ',') : [null];
                                     }
                                     else {
                                         valueArray = typeValue;
@@ -418,6 +418,10 @@ export default (Bookshelf, options = {}) => {
                                         });
                                     }
                                     else if (key === 'not'){
+                                        if (valueArray.find((val) => val === null || val === 'null') !== undefined) {
+                                            qb.whereNotNull(typeKey);
+                                            valueArray = valueArray.filter((val) => val !== null && val !== 'null');
+                                        }
                                         qb.whereNotIn(typeKey, valueArray);
                                     }
                                     else if (key === 'lt'){
@@ -447,6 +451,8 @@ export default (Bookshelf, options = {}) => {
                                     key = Bookshelf.knex.raw(`${extract.function}(??)`, extract.column);
                                 }
 
+                                value = value === 'null' ? null : value;
+
                                 if (_isNull(value)){
                                     qb.where(key, value);
                                 }
@@ -455,7 +461,11 @@ export default (Bookshelf, options = {}) => {
                                     if (!_isArray(value)){
                                         value = split(value.toString(), ',');
                                     }
-                                    qb.whereIn(key, value);
+                                    if (value.find((val) => val === 'null' || val === null) !== undefined){
+                                        qb.whereNull(key);
+                                        value = value.filter((val) => val !== 'null' && val !== null);
+                                    }
+                                    qb.orWhereIn(key, value);
                                 }
                             }
                         }
