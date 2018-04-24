@@ -423,7 +423,7 @@ export default (Bookshelf, options = {}) => {
                                         });
                                     }
                                     else if (key === 'not'){
-                                        if (_includes(valueArray, 'null', null)) {
+                                        if (!_includes(valueArray, 'null', null)) {
                                             qb.whereNotNull(typeKey);
                                             valueArray = valueArray.filter((val) => val !== null && val !== 'null');
                                         }
