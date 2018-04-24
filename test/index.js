@@ -63,7 +63,7 @@ describe('bookshelf-jsonapi-params', () => {
 
             return _.reduce(attrs, (result, val, key) => {
 
-                const aggregateFunctions = ['count', 'sum', 'avg', 'max', 'min'];
+                const aggregateFunctions = ['count', 'sum', 'avg', 'max', 'min', 'lower', 'upper'];
 
                 if (_.some(aggregateFunctions, (f) => _.startsWith(key, f + '('))) {
                     result[key] = val;
@@ -872,6 +872,44 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('sum')).to.equal(37);
+                    done();
+                });
+        });
+    });
+
+    describe('passing a `filter` parameter with a function', () => {
+
+        it('should return the person whose lowercase name equals to \'barney\'', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        'lower(first_name)': 'barney'
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('firstName')).to.equal('Barney');
+                    done();
+                });
+        });
+
+        it('should return persons whose lowercase name is not \'barney\'', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        not: {
+                            'lower(first_name)': 'barney'
+                        }
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(4);
                     done();
                 });
         });
