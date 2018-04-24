@@ -611,6 +611,24 @@ describe('bookshelf-jsonapi-params', () => {
                     done();
                 });
         });
+
+        it('should return the person named Cookie Monster', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        firstName: 'Cookie Monster',
+                        gender: 'm'
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                    done();
+                });
+        });
     });
 
     describe('passing a `sort` parameter', () => {
