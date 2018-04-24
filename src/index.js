@@ -423,7 +423,7 @@ export default (Bookshelf, options = {}) => {
                                         });
                                     }
                                     else if (key === 'not'){
-                                        if (valueArray.find((val) => val === null || val === 'null') !== undefined) {
+                                        if (_includes(valueArray, 'null', null)) {
                                             qb.whereNotNull(typeKey);
                                             valueArray = valueArray.filter((val) => val !== null && val !== 'null');
                                         }
@@ -460,11 +460,19 @@ export default (Bookshelf, options = {}) => {
                                     if (!_isArray(value)){
                                         value = split(value.toString(), ',');
                                     }
-                                    if (value.find((val) => val === 'null' || val === null) !== undefined){
-                                        qb.whereNull(key);
+                                    if (_includes(value, 'null', null)){
                                         value = value.filter((val) => val !== 'null' && val !== null);
+                                        qb.where((qbWhere) => {
+
+                                            qbWhere.whereNull(key);
+                                            if (!_isEmpty(value)){
+                                                qbWhere.orWhereIn(key, value);
+                                            }
+                                        });
                                     }
-                                    qb.orWhereIn(key, value);
+                                    else {
+                                        qb.whereIn(key, value);
+                                    }
                                 }
                             }
                         }
