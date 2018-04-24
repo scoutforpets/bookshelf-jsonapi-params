@@ -460,11 +460,19 @@ export default (Bookshelf, options = {}) => {
                                     if (!_isArray(value)){
                                         value = split(value.toString(), ',');
                                     }
-                                    if (value.find((val) => val === 'null' || val === null) !== undefined){
-                                        qb.whereNull(key);
+                                    if (value.find((val) => val === null || val === 'null') !== undefined){
                                         value = value.filter((val) => val !== 'null' && val !== null);
+                                        qb.where((qbWhere) => {
+
+                                            qbWhere.whereNull(key);
+                                            if (!_isEmpty(value)){
+                                                qbWhere.orWhereIn(key, value);
+                                            }
+                                        });
                                     }
-                                    qb.orWhereIn(key, value);
+                                    else {
+                                        qb.whereIn(key, value);
+                                    }
                                 }
                             }
                         }
