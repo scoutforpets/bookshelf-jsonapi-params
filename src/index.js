@@ -648,7 +648,7 @@ export default (Bookshelf, options = {}) => {
                         columnNames[key] = _keys(this.format(columns));
                     }
                     else {
-                        columnNames = _keys(this.format(columns));
+                        columnNames[key] = _keys(this.format({ [value]: undefined }))[0];
                     }
                 }
             });
