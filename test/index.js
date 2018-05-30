@@ -42,6 +42,15 @@ describe('bookshelf-jsonapi-params', () => {
         toy: function () {
 
             return this.hasOne(ToyModel);
+        },
+        format: function (attrs) {
+            // This recreates the format behavior for those working with knex
+            return _.reduce(attrs, (result, val, key) => {
+
+                const columnComponentParts = key.split('.').map(_.snakeCase);
+                result[columnComponentParts.join('.')] = val;
+                return result;
+            }, {});
         }
     });
 
@@ -949,13 +958,13 @@ describe('bookshelf-jsonapi-params', () => {
             PetModel
                 .forge()
                 .fetchJsonApi({
-                    sort: ['petOwner.age', 'name']
+                    sort: ['-petOwner.age', 'name']
                 })
                 .then((result) => {
 
                     expect(result.models).to.have.length(4);
-                    expect(result.models[0].get('name')).to.equal('Big Bird');
-                    expect(result.models[1].get('name')).to.equal('Grover');
+                    expect(result.models[2].get('name')).to.equal('Big Bird');
+                    expect(result.models[3].get('name')).to.equal('Grover');
                     done();
                 });
         });
