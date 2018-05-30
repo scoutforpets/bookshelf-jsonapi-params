@@ -655,44 +655,6 @@ export default (Bookshelf, options = {}) => {
             return columnNames;
         };
 
-
-            /*
-            _forEach(columnNames, (value, key) => {
-
-                let columns = {};
-                if (_includes(value, '.')){
-                    columns[columnNames[key].substr(columnNames[key].lastIndexOf('.') + 1)] = undefined;
-                    columnNames[key] = columnNames[key].substring(0, columnNames[key].lastIndexOf('.')) + '.' + _keys(this.format(columns));
-                }
-                else if (_isArray(value) && key === '' && value.length === 1 && _includes(value[0], '.')){
-                    columns[value[0].substr(value[0].lastIndexOf('.') + 1)] = undefined;
-                    value[0] = value[0].substring(0, value[0].lastIndexOf('.')) + '.' + _keys(this.format(columns));
-                }
-                else {
-                    // Convert column names to an object so it can
-                    // be passed to Model#format
-                    if (_isArray(columnNames[key])) {
-                        columns = _zipObject(columnNames[key], null);
-                    }
-                    else {
-                        columns = _zipObject(columnNames, null);
-                    }
-
-                    // Format column names using Model#format
-                    if (_isArray(columnNames[key])) {
-                        columnNames[key] = _keys(this.format(columns));
-                    }
-                    else {
-                        columnNames[key] = _keys(this.format({ [value]: undefined }))[0];
-                    }
-                }
-            });
-
-            return columnNames;
-
-        };
-        */
-
         /**
          * Determines if the specified relation is a `belongsTo` type.
          * @param   relationName {string}
