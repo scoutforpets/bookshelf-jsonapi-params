@@ -3,6 +3,7 @@
 import {
     assign as _assign,
     forEach as _forEach,
+    forOwn as _forOwn,
     has as _has,
     hasIn as _hasIn,
     includes as _includes,
@@ -648,8 +649,7 @@ export default (Bookshelf, options = {}) => {
             }
 
             // process an object for which each value is a collection of columns to be formatted
-            _forEach(_keys(columnNames), (columnNameKey) => {
-                const columnCollection = columnNames[columnNameKey];
+            _forOwn(columnNames, (columnCollection, columnNameKey) => {
                 columnNames[columnNameKey] = internals.formatColumnCollection(columnCollection);
             });
 
