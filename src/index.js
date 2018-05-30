@@ -15,8 +15,7 @@ import {
     isNull as _isNull,
     forIn as _forIn,
     keys as _keys,
-    map as _map,
-    zipObject as _zipObject
+    map as _map
 } from 'lodash';
 
 import split from 'split-string';

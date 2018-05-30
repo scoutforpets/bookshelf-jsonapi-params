@@ -35,9 +35,9 @@ describe('bookshelf-jsonapi-params', () => {
 
     const PetModel = repository.Model.extend({
         tableName: 'pet',
-        person: function () {
+        petOwner: function () {
 
-            return this.belongsTo(PersonModel);
+            return this.belongsTo(PersonModel, 'pet_owner_id');
         },
         toy: function () {
 
@@ -78,7 +78,7 @@ describe('bookshelf-jsonapi-params', () => {
 
         pets: function () {
 
-            return this.hasOne(PetModel);
+            return this.hasOne(PetModel, 'pet_owner_id');
         }
     });
 
@@ -109,7 +109,7 @@ describe('bookshelf-jsonapi-params', () => {
 
                         table.increments('id').primary();
                         table.string('name');
-                        table.integer('person_id');
+                        table.integer('pet_owner_id');
                     }),
                     repository.knex.schema.createTable('toy', (table) => {
 
@@ -161,17 +161,22 @@ describe('bookshelf-jsonapi-params', () => {
                     PetModel.forge().save({
                         id: 1,
                         name: 'Big Bird',
-                        person_id: 1
+                        pet_owner_id: 1
                     }),
                     PetModel.forge().save({
                         id: 2,
                         name: 'Godzilla',
-                        person_id: 2
+                        pet_owner_id: 2
                     }),
                     PetModel.forge().save({
                         id: 3,
                         name: 'Patches',
-                        person_id: 3
+                        pet_owner_id: 3
+                    }),
+                    PetModel.forge().save({
+                        id: 4,
+                        name: 'Grover',
+                        pet_owner_id: 1
                     }),
                     ToyModel.forge().save({
                         id: 1,
@@ -804,7 +809,6 @@ describe('bookshelf-jsonapi-params', () => {
                     }
                 })
                 .then((result) => {
-
                     expect(result.models).to.have.length(3);
                     expect(result.models[0].get('firstName')).to.equal('Barney');
                     expect(result.models[1].get('firstName')).to.equal('Baby Bop');
@@ -932,6 +936,26 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('sumAge')).to.equal(37);
+                    done();
+                });
+        });
+    });
+
+
+    describe('Sorting by multiple columns with a mix of camelCase values', () => {
+
+        it('should generate valid SQL', (done) => {
+
+            PetModel
+                .forge()
+                .fetchJsonApi({
+                    sort: ['petOwner.age', 'name']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(4);
+                    expect(result.models[0].get('name')).to.equal('Big Bird');
+                    expect(result.models[1].get('name')).to.equal('Grover');
                     done();
                 });
         });
