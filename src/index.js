@@ -3,6 +3,7 @@
 import {
     assign as _assign,
     forEach as _forEach,
+    forOwn as _forOwn,
     has as _has,
     hasIn as _hasIn,
     includes as _includes,
@@ -14,8 +15,7 @@ import {
     isNull as _isNull,
     forIn as _forIn,
     keys as _keys,
-    map as _map,
-    zipObject as _zipObject
+    map as _map
 } from 'lodash';
 
 import split from 'split-string';
@@ -615,42 +615,41 @@ export default (Bookshelf, options = {}) => {
         };
 
         /**
+         * Turn a column into its {@link Model#format} format
+         * leaving specified table names untouched.
+         * A helper function to formatColumnNames that does the work of formatting strictly on an array
+         * @param columnNames {array}
+         * @returns formattedColumnNames {array}
+         */
+
+        internals.formatColumnCollection = (columnNames = []) => {
+
+            return _map(columnNames, (columnName) => {
+                const columnComponents = columnName.split('.');
+                const lastIndex = columnComponents.length - 1;
+                const tableAttribute = columnComponents[lastIndex];
+                const formattedTableAttribute = _keys(this.format({ [tableAttribute]: undefined }))[0];
+                columnComponents[lastIndex] = formattedTableAttribute;
+
+                return columnComponents.join('.');
+            });
+        };
+
+        /**
          * Processes incoming parameters that represent columns names and
          * formats them using the internal {@link Model#format} function.
-         * @param  columnNames {array}
-         * @return {array{}
+         * @param columnNames {array|object}
+         * @returns formattedColumnNames {array|object}
          */
         internals.formatColumnNames = (columnNames = []) => {
 
-            _forEach(columnNames, (value, key) => {
+            if (_isArray(columnNames)) {
+                return internals.formatColumnCollection(columnNames);
+            }
 
-                let columns = {};
-                if (_includes(value, '.')){
-                    columns[columnNames[key].substr(columnNames[key].lastIndexOf('.') + 1)] = undefined;
-                    columnNames[key] = columnNames[key].substring(0, columnNames[key].lastIndexOf('.')) + '.' + _keys(this.format(columns));
-                }
-                else if (_isArray(value) && key === '' && value.length === 1 && _includes(value[0], '.')){
-                    columns[value[0].substr(value[0].lastIndexOf('.') + 1)] = undefined;
-                    value[0] = value[0].substring(0, value[0].lastIndexOf('.')) + '.' + _keys(this.format(columns));
-                }
-                else {
-                    // Convert column names to an object so it can
-                    // be passed to Model#format
-                    if (_isArray(columnNames[key])) {
-                        columns = _zipObject(columnNames[key], null);
-                    }
-                    else {
-                        columns = _zipObject(columnNames, null);
-                    }
-
-                    // Format column names using Model#format
-                    if (_isArray(columnNames[key])) {
-                        columnNames[key] = _keys(this.format(columns));
-                    }
-                    else {
-                        columnNames = _keys(this.format(columns));
-                    }
-                }
+            // process an object for which each value is a collection of columns to be formatted
+            _forOwn(columnNames, (columnCollection, columnNameKey) => {
+                columnNames[columnNameKey] = internals.formatColumnCollection(columnCollection);
             });
 
             return columnNames;
