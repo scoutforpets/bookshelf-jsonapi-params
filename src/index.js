@@ -615,13 +615,49 @@ export default (Bookshelf, options = {}) => {
         };
 
         /**
+         * Turn a column into its {@link Model#format} format
+         * leaving specified table names untouched.
+         * A helper function to formatColumnNames that does the work of formatting strictly on an array
+         * @param columnNames {array}
+         * @returns formattedColumnNames {array}
+         */
+
+        internals.formatColumnCollection = (columnNames = []) => {
+
+            return _map(columnNames, (columnName) => {
+                const columnComponents = columnName.split('.');
+                const lastIndex = columnComponents.length - 1;
+                const tableAttribute = columnComponents[lastIndex];
+                const formattedTableAttribute = _keys(this.format({ [tableAttribute]: undefined }))[0];
+                columnComponents[lastIndex] = formattedTableAttribute;
+
+                return columnComponents.join('.');
+            });
+        };
+
+        /**
          * Processes incoming parameters that represent columns names and
          * formats them using the internal {@link Model#format} function.
-         * @param  columnNames {array}
-         * @return {array{}
+         * @param columnNames {array|object}
+         * @returns formattedColumnNames {array|object}
          */
         internals.formatColumnNames = (columnNames = []) => {
 
+            if (_isArray(columnNames)) {
+                return internals.formatColumnCollection(columnNames);
+            }
+
+            // process an object for which each value is a collection of columns to be formatted
+            _forEach(_keys(columnNames), (columnNameKey) => {
+                const columnCollection = columnNames[columnNameKey];
+                columnNames[columnNameKey] = internals.formatColumnCollection(columnCollection);
+            });
+
+            return columnNames;
+        };
+
+
+            /*
             _forEach(columnNames, (value, key) => {
 
                 let columns = {};
@@ -654,7 +690,9 @@ export default (Bookshelf, options = {}) => {
             });
 
             return columnNames;
+
         };
+        */
 
         /**
          * Determines if the specified relation is a `belongsTo` type.
