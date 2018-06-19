@@ -377,7 +377,7 @@ export default (Bookshelf, options = {}) => {
                                     // Determine if there are multiple filters to be applied
                                     let valueArray = null;
                                     if (!_isArray(typeValue)){
-                                        valueArray = typeValue !== null && typeValue !== 'null' ? split(typeValue.toString(), ',') : [null];
+                                        valueArray = typeValue !== null && typeValue !== 'null' ? split(typeValue.toString(), { keepQuotes: true, sep: ',' }) : [null];
                                     }
                                     else {
                                         valueArray = typeValue;
@@ -458,7 +458,7 @@ export default (Bookshelf, options = {}) => {
                                 else {
                                     // Determine if there are multiple filters to be applied
                                     if (!_isArray(value)){
-                                        value = split(value.toString(), ',');
+                                        value = split(value.toString(), { keepQuotes: true, sep: ',' });
                                     }
                                     if (value.find((val) => val === null || val === 'null') !== undefined){
                                         value = value.filter((val) => val !== 'null' && val !== null);
