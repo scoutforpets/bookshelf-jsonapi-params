@@ -187,6 +187,11 @@ describe('bookshelf-jsonapi-params', () => {
                         name: 'Grover',
                         pet_owner_id: 1
                     }),
+                    PetModel.forge().save({
+                        id: 5,
+                        name: 'Benny "The Terror" Terrier',
+                        pet_owner_id: 2
+                    }),
                     ToyModel.forge().save({
                         id: 1,
                         type: 'skate',
@@ -950,6 +955,26 @@ describe('bookshelf-jsonapi-params', () => {
         });
     });
 
+    describe('Filtering by string values which contain quotes', () => {
+
+        it('should maintain quotes when it builds the filter', (done) => {
+
+            PetModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        name: 'Benny "The Terror" Terrier'
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    done();
+                });
+        });
+    });
+
+
 
     describe('Sorting by multiple columns with a mix of camelCase values', () => {
 
@@ -962,9 +987,9 @@ describe('bookshelf-jsonapi-params', () => {
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(4);
-                    expect(result.models[2].get('name')).to.equal('Big Bird');
-                    expect(result.models[3].get('name')).to.equal('Grover');
+                    expect(result.models).to.have.length(5);
+                    expect(result.models[3].get('name')).to.equal('Big Bird');
+                    expect(result.models[4].get('name')).to.equal('Grover');
                     done();
                 });
         });
