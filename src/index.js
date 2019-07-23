@@ -334,7 +334,13 @@ export default (Bookshelf, options = {}) => {
 
                                 if (internals.isBelongsToRelation(relation, this)) {
                                     const relatedData = this.related(relation).relatedData;
-                                    const relationId = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
+                                    let relationId;
+                                    if (relatedData.throughForeignKey) {
+                                        relationId = relatedData.throughForeignKey;
+                                    }
+                                    else {
+                                        relationId = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
+                                    }
                                     qb.select(`${internals.modelName}.${relationId}`);
                                 }
                             });
