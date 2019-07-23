@@ -3,18 +3,19 @@
 import {
     assign as _assign,
     forEach as _forEach,
+    forOwn as _forOwn,
     has as _has,
     hasIn as _hasIn,
     includes as _includes,
     isEmpty as _isEmpty,
     isArray as _isArray,
+    isFunction as _isFunction,
     isObject as _isObject,
     isObjectLike as _isObjectLike,
     isNull as _isNull,
     forIn as _forIn,
     keys as _keys,
-    map as _map,
-    zipObject as _zipObject
+    map as _map
 } from 'lodash';
 
 import split from 'split-string';
@@ -60,7 +61,7 @@ export default (Bookshelf, options = {}) => {
      *     with the model.
      * @return {Promise<Model|Collection|null>}
      */
-    const fetchJsonApi = function (opts, isCollection = true, type) {
+    const fetchJsonApi = function (opts, isCollection = true, type, additionalQuery) {
 
         opts = opts || {};
 
@@ -180,7 +181,20 @@ export default (Bookshelf, options = {}) => {
                                      `${relationKey}.${foreignKey}`);
                 }
                 else if (relatedData.type === 'belongsTo'){
-                    qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`, `${parentKey}.${foreignKey}`, `${relationKey}.${relatedData.targetIdAttribute}`);
+                    if (relatedData.throughTableName){
+                        const throughTableAlias = `${relationKey}_${relatedData.throughTableName}_pivot`;
+                        qb.leftOuterJoin(`${relatedData.throughTableName} as ${throughTableAlias}`,
+                                        `${parentKey}.${relatedData.parentIdAttribute}`,
+                                        `${throughTableAlias}.${relatedData.throughIdAttribute}`);
+                        qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
+                                        `${throughTableAlias}.${foreignKey}`,
+                                        `${relationKey}.${relatedData.targetIdAttribute}`);
+                    }
+                    else {
+                        qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
+                                        `${parentKey}.${foreignKey}`,
+                                        `${relationKey}.${relatedData.targetIdAttribute}`);
+                    }
                 }
                 else if (relatedData.type === 'belongsToMany'){
                     const otherKey = relatedData.otherKey ? relatedData.otherKey : `${inflection.singularize(relatedData.targetTableName)}_id`;
@@ -363,7 +377,7 @@ export default (Bookshelf, options = {}) => {
                                     // Determine if there are multiple filters to be applied
                                     let valueArray = null;
                                     if (!_isArray(typeValue)){
-                                        valueArray = split(typeValue.toString(), ',');
+                                        valueArray = typeValue !== null && typeValue !== 'null' ? split(typeValue.toString(), { keepQuotes: true, sep: ',' }) : [null];
                                     }
                                     else {
                                         valueArray = typeValue;
@@ -409,6 +423,10 @@ export default (Bookshelf, options = {}) => {
                                         });
                                     }
                                     else if (key === 'not'){
+                                        if (valueArray.find((val) => val === null || val === 'null') !== undefined) {
+                                            qb.whereNotNull(typeKey);
+                                            valueArray = valueArray.filter((val) => val !== null && val !== 'null');
+                                        }
                                         qb.whereNotIn(typeKey, valueArray);
                                     }
                                     else if (key === 'lt'){
@@ -432,7 +450,7 @@ export default (Bookshelf, options = {}) => {
                             if (!_hasIn(filterValues.like, key)){
                                 // Remove all but the last table name, need to get number of dots
                                 key = internals.formatRelation(internals.formatColumnNames([key])[0]);
-
+                                value = value === 'null' ? null : value;
 
                                 if (_isNull(value)){
                                     qb.where(key, value);
@@ -440,9 +458,21 @@ export default (Bookshelf, options = {}) => {
                                 else {
                                     // Determine if there are multiple filters to be applied
                                     if (!_isArray(value)){
-                                        value = split(value.toString(), ',');
+                                        value = split(value.toString(), { keepQuotes: true, sep: ',' });
                                     }
-                                    qb.whereIn(key, value);
+                                    if (value.find((val) => val === null || val === 'null') !== undefined){
+                                        value = value.filter((val) => val !== 'null' && val !== null);
+                                        qb.where((qbWhere) => {
+
+                                            qbWhere.whereNull(key);
+                                            if (!_isEmpty(value)){
+                                                qbWhere.orWhereIn(key, value);
+                                            }
+                                        });
+                                    }
+                                    else {
+                                        qb.whereIn(key, value);
+                                    }
                                 }
                             }
                         }
@@ -554,7 +584,12 @@ export default (Bookshelf, options = {}) => {
 
                 _forEach(sortValues, (sortBy) => {
 
-                    internals.model.orderBy(sortBy, sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc');
+                    if (sortBy) {
+                        internals.model.orderBy(
+                            internals.formatRelation(sortBy),
+                            sortDesc.indexOf(sortBy) === -1 ? 'asc' : 'desc'
+                        );
+                    }
                 });
             }
         };
@@ -580,42 +615,41 @@ export default (Bookshelf, options = {}) => {
         };
 
         /**
+         * Turn a column into its {@link Model#format} format
+         * leaving specified table names untouched.
+         * A helper function to formatColumnNames that does the work of formatting strictly on an array
+         * @param columnNames {array}
+         * @returns formattedColumnNames {array}
+         */
+
+        internals.formatColumnCollection = (columnNames = []) => {
+
+            return _map(columnNames, (columnName) => {
+                const columnComponents = columnName.split('.');
+                const lastIndex = columnComponents.length - 1;
+                const tableAttribute = columnComponents[lastIndex];
+                const formattedTableAttribute = _keys(this.format({ [tableAttribute]: undefined }))[0];
+                columnComponents[lastIndex] = formattedTableAttribute;
+
+                return columnComponents.join('.');
+            });
+        };
+
+        /**
          * Processes incoming parameters that represent columns names and
          * formats them using the internal {@link Model#format} function.
-         * @param  columnNames {array}
-         * @return {array{}
+         * @param columnNames {array|object}
+         * @returns formattedColumnNames {array|object}
          */
         internals.formatColumnNames = (columnNames = []) => {
 
-            _forEach(columnNames, (value, key) => {
+            if (_isArray(columnNames)) {
+                return internals.formatColumnCollection(columnNames);
+            }
 
-                let columns = {};
-                if (_includes(value, '.')){
-                    columns[columnNames[key].substr(columnNames[key].lastIndexOf('.') + 1)] = undefined;
-                    columnNames[key] = columnNames[key].substring(0, columnNames[key].lastIndexOf('.')) + '.' + _keys(this.format(columns));
-                }
-                else if (_isArray(value) && key === '' && value.length === 1 && _includes(value[0], '.')){
-                    columns[value[0].substr(value[0].lastIndexOf('.') + 1)] = undefined;
-                    value[0] = value[0].substring(0, value[0].lastIndexOf('.')) + '.' + _keys(this.format(columns));
-                }
-                else {
-                    // Convert column names to an object so it can
-                    // be passed to Model#format
-                    if (_isArray(columnNames[key])) {
-                        columns = _zipObject(columnNames[key], null);
-                    }
-                    else {
-                        columns = _zipObject(columnNames, null);
-                    }
-
-                    // Format column names using Model#format
-                    if (_isArray(columnNames[key])) {
-                        columnNames[key] = _keys(this.format(columns));
-                    }
-                    else {
-                        columnNames = _keys(this.format(columns));
-                    }
-                }
+            // process an object for which each value is a collection of columns to be formatted
+            _forOwn(columnNames, (columnCollection, columnNameKey) => {
+                columnNames[columnNameKey] = internals.formatColumnCollection(columnCollection);
             });
 
             return columnNames;
@@ -708,6 +742,11 @@ export default (Bookshelf, options = {}) => {
 
         // Apply sparse fieldsets
         internals.buildFields(fields);
+
+        // Apply extra query which was passed in as a parameter
+        if (_isFunction(additionalQuery)){
+            internals.model.query(additionalQuery);
+        }
 
         // Assign default paging options if they were passed to the plugin
         // and no pagination parameters were passed directly to the method.

@@ -77,7 +77,7 @@ If you're returning a single resource from a call such as `GET /customers/1`, ma
 
 ## API
 
-`fetchJsonApi(options, isCollection, type)` - calling `fetchJsonApi` with no options is just like a plain call to `Model#fetch` or `Model#fetchAll`. Note that in addition to the options below, you may also pass anything you can pass to `Model#fetch` or `Model#fetchAll`.
+`fetchJsonApi(options, isCollection, type, additionalQuery)` - calling `fetchJsonApi` with no options is just like a plain call to `Model#fetch` or `Model#fetchAll`. Note that in addition to the options below, you may also pass anything you can pass to `Model#fetch` or `Model#fetchAll`.
 
 `options`    | Description
 :------------- | :-------------
@@ -93,6 +93,13 @@ See the **[specific section of the JSON API spec](http://jsonapi.org/format/#fet
 `isCollection` - by default, internal calls will be made to `fetchAll`. If you're returning a single resource, set `isCollection` to `false`.
 
 `type` - by default, the JSON API resource type will be set using the `tableName` defined in your Bookshelf model. If your resource type is different, you can pass the resource type into `fetchJsonApi` directly.
+
+`additionalQuery` - allows you to modify the query builder prior to to execution of the query. This must be a function that takes in the knex Query Builder object. For example:
+```
+fetchJsonApi(options, isCollection, type, (qb) => {
+    qb.whereRaw('extract(year from date)=2018');
+});
+```
 
 ### Pagination and Sorting
 Under the hood, this plugin uses the excellent [bookshelf-page](https://github.com/anyong/bookshelf-page) plugin. Please see the available options that can be passed in via the `page` parameter.

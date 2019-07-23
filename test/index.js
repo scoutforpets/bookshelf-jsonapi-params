@@ -24,11 +24,33 @@ describe('bookshelf-jsonapi-params', () => {
     }));
 
     // Create models
+
+    const ToyModel = repository.Model.extend({
+        tableName: 'toy',
+        pet: function () {
+
+            return this.belongsTo(PetModel);
+        }
+    });
+
     const PetModel = repository.Model.extend({
         tableName: 'pet',
-        person: function () {
+        petOwner: function () {
 
-            return this.belongsTo(PersonModel);
+            return this.belongsTo(PersonModel, 'pet_owner_id');
+        },
+        toy: function () {
+
+            return this.hasOne(ToyModel);
+        },
+        format: function (attrs) {
+            // This recreates the format behavior for those working with knex
+            return _.reduce(attrs, (result, val, key) => {
+
+                const columnComponentParts = key.split('.').map(_.snakeCase);
+                result[columnComponentParts.join('.')] = val;
+                return result;
+            }, {});
         }
     });
 
@@ -65,7 +87,7 @@ describe('bookshelf-jsonapi-params', () => {
 
         pets: function () {
 
-            return this.hasOne(PetModel);
+            return this.hasOne(PetModel, 'pet_owner_id');
         }
     });
 
@@ -78,7 +100,8 @@ describe('bookshelf-jsonapi-params', () => {
         // Build the schema and add some data
         Promise.join(
             repository.knex.schema.dropTableIfExists('person'),
-            repository.knex.schema.dropTableIfExists('pet')
+            repository.knex.schema.dropTableIfExists('pet'),
+            repository.knex.schema.dropTableIfExists('toy')
         )
             .then(() => {
 
@@ -95,7 +118,13 @@ describe('bookshelf-jsonapi-params', () => {
 
                         table.increments('id').primary();
                         table.string('name');
-                        table.integer('person_id');
+                        table.integer('pet_owner_id');
+                    }),
+                    repository.knex.schema.createTable('toy', (table) => {
+
+                        table.increments('id').primary();
+                        table.string('type');
+                        table.integer('pet_id');
                     })
                 );
             })
@@ -141,17 +170,37 @@ describe('bookshelf-jsonapi-params', () => {
                     PetModel.forge().save({
                         id: 1,
                         name: 'Big Bird',
-                        person_id: 1
+                        pet_owner_id: 1
                     }),
                     PetModel.forge().save({
                         id: 2,
                         name: 'Godzilla',
-                        person_id: 2
+                        pet_owner_id: 2
                     }),
                     PetModel.forge().save({
                         id: 3,
                         name: 'Patches',
-                        person_id: 3
+                        pet_owner_id: 3
+                    }),
+                    PetModel.forge().save({
+                        id: 4,
+                        name: 'Grover',
+                        pet_owner_id: 1
+                    }),
+                    PetModel.forge().save({
+                        id: 5,
+                        name: 'Benny "The Terror" Terrier',
+                        pet_owner_id: 2
+                    }),
+                    ToyModel.forge().save({
+                        id: 1,
+                        type: 'skate',
+                        pet_id: 1
+                    }),
+                    ToyModel.forge().save({
+                        id: 2,
+                        type: 'car',
+                        pet_id: 2
                     })
                 );
             })
@@ -163,7 +212,8 @@ describe('bookshelf-jsonapi-params', () => {
         // Drop the tables when tests are complete
         Promise.join(
             repository.knex.schema.dropTableIfExists('person'),
-            repository.knex.schema.dropTableIfExists('pet')
+            repository.knex.schema.dropTableIfExists('pet'),
+            repository.knex.schema.dropTableIfExists('toy')
         )
             .then(() => done());
     });
@@ -269,6 +319,22 @@ describe('bookshelf-jsonapi-params', () => {
                     done();
                 });
         });
+
+        it('should return a single record that matches both filters with a null', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        type: 'null,t-rex'
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    done();
+                });
+        });
     });
 
     describe('passing a `filter[like]` parameter with a single filter', () => {
@@ -340,6 +406,48 @@ describe('bookshelf-jsonapi-params', () => {
                     done();
                 });
         });
+
+        it('should return all records that do not match filter[not] with null', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        not: {
+                            type: null
+                        }
+                    }
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(4);
+                    expect(result.models[0].get('type')).to.equal('t-rex');
+                    expect(result.models[1].get('type')).to.equal('triceratops');
+                    expect(result.models[2].get('type')).to.equal('monster');
+                    expect(result.models[3].get('type')).to.equal('nothing, here');
+                    done();
+                });
+        });
+
+        it('should return all records that do not match filter[not] with null as a string', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        not: {
+                            type: 'null'
+                        }
+                    }
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(4);
+                    expect(result.models[0].get('type')).to.equal('t-rex');
+                    expect(result.models[1].get('type')).to.equal('triceratops');
+                    expect(result.models[2].get('type')).to.equal('monster');
+                    expect(result.models[3].get('type')).to.equal('nothing, here');
+                    done();
+                });
+        });
     });
 
     describe('passing a `filter[not]` parameter with multiple filters', () => {
@@ -359,6 +467,26 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                    done();
+                });
+        });
+
+        it('should return all records that do not match filter[not] including null', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        not: {
+                            type: 'null,t-rex'
+                        }
+                    }
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('type')).to.equal('triceratops');
+                    expect(result.models[1].get('type')).to.equal('monster');
+                    expect(result.models[2].get('type')).to.equal('nothing, here');
                     done();
                 });
         });
@@ -502,6 +630,24 @@ describe('bookshelf-jsonapi-params', () => {
                     done();
                 });
         });
+
+        it('should return the person named Cookie Monster', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        firstName: 'Cookie Monster',
+                        gender: 'm'
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                    done();
+                });
+        });
     });
 
     describe('passing a `sort` parameter', () => {
@@ -563,6 +709,22 @@ describe('bookshelf-jsonapi-params', () => {
 
                     expect(result.models).to.have.length(5);
                     expect(result.models[0].get('firstName')).to.equal('Elmo');
+                    done();
+                });
+        });
+
+        it('should sort on deeply nested resources', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    include: ['pets', 'pets.toy'],
+                    sort: ['-pets.toy.type']
+                })
+                .then((result) => {
+
+                    expect(result.models[0].related('pets').related('toy').get('type')).to.equal('skate');
+                    expect(result.models[1].related('pets').related('toy').get('type')).to.equal('car');
                     done();
                 });
         });
@@ -661,7 +823,6 @@ describe('bookshelf-jsonapi-params', () => {
                     }
                 })
                 .then((result) => {
-
                     expect(result.models).to.have.length(3);
                     expect(result.models[0].get('firstName')).to.equal('Barney');
                     expect(result.models[1].get('firstName')).to.equal('Baby Bop');
@@ -733,6 +894,107 @@ describe('bookshelf-jsonapi-params', () => {
                 });
         });
     });
+
+    describe('passing in an additional query', () => {
+
+        it('should return the total count of records', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({}, undefined, undefined, (qb) => {
+
+                    qb.count('id');
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('countId')).to.equal(5);
+                    done();
+                });
+        });
+
+        it('should return the average age per gender', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({}, undefined, undefined, (qb) => {
+
+                    qb.groupBy('gender').select('gender').avg('age');
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('gender')).to.equal('f');
+                    expect(result.models[0].get('avgAge')).to.equal((25 + 28) / 2);
+                    expect(result.models[1].get('gender')).to.equal('m');
+                    expect(result.models[1].get('avgAge')).to.equal((12 + 70 + 3) / 3);
+                    done();
+                });
+        });
+
+        it('should return the sum of the ages of persons with firstName containing \'Ba\'', (done) => {
+
+            PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        like: {
+                            first_name: 'Ba'
+                        }
+                    }
+                }, undefined, undefined, (qb) => {
+
+                    qb.sum('age');
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('sumAge')).to.equal(37);
+                    done();
+                });
+        });
+    });
+
+    describe('Filtering by string values which contain quotes', () => {
+
+        it('should maintain quotes when it builds the filter', (done) => {
+
+            PetModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        name: 'Benny "The Terror" Terrier'
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    done();
+                });
+        });
+    });
+
+
+
+    describe('Sorting by multiple columns with a mix of camelCase values', () => {
+
+        it('should generate valid SQL', (done) => {
+
+            PetModel
+                .forge()
+                .fetchJsonApi({
+                    sort: ['-petOwner.age', 'name']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(5);
+                    expect(result.models[3].get('name')).to.equal('Big Bird');
+                    expect(result.models[4].get('name')).to.equal('Grover');
+                    done();
+                });
+        });
+    });
+
 
     describe('passing default paging parameters to the plugin', () => {
 
