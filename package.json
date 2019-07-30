@@ -4,7 +4,7 @@
   "description": "Automatically applies relations, filters, and more from the JSON API spec to your Bookshelf.js results",
   "main": "./dist/index.js",
   "options": {
-    "mocha": "--compilers js:babel-core/register --bail test"
+    "mocha": "--require babel-core/register --bail test"
   },
   "scripts": {
     "build": "babel -q -L -D ./src/ --out-dir ./dist/",
@@ -42,18 +42,19 @@
     "babel-cli": "6.26.0",
     "babel-core": "6.26.0",
     "babel-plugin-add-module-exports": "0.2.1",
-    "chai": "3.5.0",
+    "chai": "4.2.0",
     "eslint": "2.11.1",
     "eslint-config-hapi": "9.1.0",
     "eslint-plugin-hapi": "4.0.0",
-    "mocha": "2.5.3",
+    "mocha": "6.2.0",
     "babel-plugin-syntax-object-rest-spread": "6.13.0",
     "babel-plugin-transform-object-rest-spread": "6.26.0",
     "babel-preset-es2015": "6.24.1",
-    "bluebird": "3.5.1",
-    "bookshelf": "0.12.0",
-    "knex": "0.14.2",
-    "sqlite3": "3.1.13"
+    "bluebird": "3.5.5",
+    "bookshelf": "0.15.1",
+    "knex": "0.19.1",
+    "pg": "^4.5.3",
+    "sqlite3": "4.0.9"
   },
   "engines": {
     "iojs": ">= 1.0.0",
@@ -62,7 +63,7 @@
   "dependencies": {
     "bookshelf-page": "0.3.2",
     "inflection": "^1.12.0",
-    "lodash": "4.17.4",
+    "lodash": "4.17.15",
     "split-string": "^4.0.0"
   }
 }
