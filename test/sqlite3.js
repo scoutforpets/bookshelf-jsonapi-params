@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import Bookshelf from 'bookshelf';
 import Knex from 'knex';
 import Sqlite3 from 'sqlite3';
