@@ -26,4 +26,15 @@ describe('bookshelf-jsonapi-params with sqlite3', () => {
     // Create models
 
     require('./test-helpers/common')(repository, dbConfig.client);
+
+    after((done) => {
+
+        // Drop the tables when tests are complete
+        Promise.join(
+            repository.knex.schema.dropTableIfExists('person'),
+            repository.knex.schema.dropTableIfExists('pet'),
+            repository.knex.schema.dropTableIfExists('toy')
+        )
+        .then(() => done());
+    });
 });
