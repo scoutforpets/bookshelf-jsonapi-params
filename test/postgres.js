@@ -14,7 +14,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
         client: 'pg',
         connection: {
             host: 'localhost',
-            user: 'bookshelf_jsonapi_test',
+            user: 'postgres',
             database: 'bookshelf_jsonapi_test',
             charset: 'utf8',
             port: 5432
