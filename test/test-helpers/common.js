@@ -70,7 +70,7 @@ export default function (repository, dbClient) {
                 }, {});
             },
 
-            pets: function () {
+            pet: function () {
 
                 return this.hasOne(repository.Models.PetModel, 'pet_owner_id');
             }
@@ -221,7 +221,7 @@ export default function (repository, dbClient) {
                         style: {
                             species: 'dog',
                             age: 8,
-                            birthday: new Date('July 8, 2016 13:53:21'),
+                            birthday: new Date('July 8, 2015 13:53:21'),
                             looks: {
                                 color: 'brown/white',
                                 height: 'short',
@@ -411,19 +411,19 @@ export default function (repository, dbClient) {
                 repository.Models.PersonModel
                     .forge()
                     .fetchJsonApi({
-                        include: ['pets', 'pets.toy'],
-                        sort: ['-pets.toy.type'],
+                        include: ['pet.toy'],
+                        sort: ['-pet.toy.type'],
                         filter: {
                             not: {
-                                'pets.toy.type': null
+                                'pet.toy.type': null
                             }
                         }
                     })
                     .then((result) => {
 
                         expect(result.models).to.have.length(2);
-                        expect(result.models[0].related('pets').related('toy').get('type')).to.equal('skate');
-                        expect(result.models[1].related('pets').related('toy').get('type')).to.equal('car');
+                        expect(result.models[0].related('pet').related('toy').get('type')).to.equal('skate');
+                        expect(result.models[1].related('pet').related('toy').get('type')).to.equal('car');
                         done();
                     });
             });
@@ -499,6 +499,31 @@ export default function (repository, dbClient) {
                             like: {
                                 first_name: 'op,coo'
                             }
+                        }
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(2);
+                        result.models = _.sortBy(result.models, ['id']);
+                        expect(result.models[0].get('firstName')).to.equal('Baby Bop');
+                        expect(result.models[1].get('firstName')).to.equal('Cookie Monster');
+                        done();
+                    });
+            });
+        });
+
+        describe('passing a `filter[like]` parameter with an equality filter of the same column', () => {
+
+            it('should return all records that partially matches both filter[like] and equality filters', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            like: {
+                                first_name: 'op'
+                            },
+                            first_name: 'Cookie Monster'
                         }
                     })
                     .then((result) => {
@@ -760,7 +785,7 @@ export default function (repository, dbClient) {
                     .forge()
                     .fetchJsonApi({
                         filter: {
-                            'pets.name': 'Big Bird'
+                            'pet.name': 'Big Bird'
                         }
                     })
                     .then((result) => {
@@ -792,16 +817,16 @@ export default function (repository, dbClient) {
 
         describe('passing an `include` parameter', () => {
 
-            it('should include the pets relationship', (done) => {
+            it('should include the pet relationship', (done) => {
 
                 repository.Models.PersonModel
                     .where({ id: 1 })
                     .fetchJsonApi({
-                        include: ['pets']
+                        include: ['pet']
                     }, false)
                     .then((result) => {
 
-                        const relation = result.related('pets');
+                        const relation = result.related('pet');
 
                         expect(result).to.be.an('object');
                         expect(relation).to.exist;
@@ -810,13 +835,13 @@ export default function (repository, dbClient) {
                     });
             });
 
-            it('should include the pets relationship when `include` is a Knex function', (done) => {
+            it('should include the pet relationship when `include` is a Knex function', (done) => {
 
                 repository.Models.PersonModel
                     .where({ id: 1 })
                     .fetchJsonApi({
                         include: [{
-                            'pets': (qb) => {
+                            'pet': (qb) => {
 
                                 qb.where({ name: 'Barney' });
                             }
@@ -824,7 +849,7 @@ export default function (repository, dbClient) {
                     }, false)
                     .then((result) => {
 
-                        const relation = result.related('pets');
+                        const relation = result.related('pet');
 
                         expect(result).to.be.an('object');
                         expect(relation.id).to.not.exist;
@@ -1083,6 +1108,12 @@ export default function (repository, dbClient) {
                         expect(result.pagination.pageCount).to.equal(5);
                         done();
                     });
+            });
+
+            after((done) => {
+
+                repository.plugin(JsonApiParams, {});
+                done();
             });
         });
     });

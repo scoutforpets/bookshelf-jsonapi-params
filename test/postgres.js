@@ -34,30 +34,15 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .fetchJsonApi({
                     filter: {
                         'style:species': 'dog'
-                    }
-                })
-                .then((result) => {
-
-                    expect(result.models).to.have.length(2);
-                    done();
-                });
-        });
-
-        it('should return results for comma separated json equality filter, sorted alphabetically', (done) => {
-
-            repository.Models.PetModel
-                .forge()
-                .fetchJsonApi({
-                    filter: {
-                        'looks:species': 'bird,reptile'
                     },
-                    sort: ['-looks:species']
+                    sort: ['id']
                 })
                 .then((result) => {
 
-                    expect(result.models).to.have.length(2);
-                    expect(result.models[0].get('name')).toEqual('Big Bird');
-                    expect(result.models[1].get('name')).toEqual('Godzilla');
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('name')).to.equal('Patches');
+                    expect(result.models[1].get('name')).to.equal('Grover');
+                    expect(result.models[2].get('name')).to.equal('Benny "The Terror" Terrier');
                     done();
                 });
         });
@@ -68,15 +53,34 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .forge()
                 .fetchJsonApi({
                     filter: {
-                        'looks:species': 'bird,reptile'
+                        'style:species': 'bird,reptile'
                     },
-                    sort: ['-looks:species']
+                    sort: ['-style:species']
                 })
                 .then((result) => {
 
                     expect(result.models).to.have.length(2);
-                    expect(result.models[0].get('name')).toEqual('Godzilla');
-                    expect(result.models[1].get('name')).toEqual('Big Bird');
+                    expect(result.models[0].get('name')).to.equal('Godzilla');
+                    expect(result.models[1].get('name')).to.equal('Big Bird');
+                    done();
+                });
+        });
+
+        it('should return results for comma separated json equality filter, sorted alphabetically', (done) => {
+
+            repository.Models.PetModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        'style:species': 'bird,reptile'
+                    },
+                    sort: ['style:species']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('name')).to.equal('Big Bird');
+                    expect(result.models[1].get('name')).to.equal('Godzilla');
                     done();
                 });
         });
@@ -87,11 +91,11 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .forge()
                 .fetchJsonApi({
                     filter: {
-                        'looks:species': 'bird,reptile'
+                        'style:species': 'bird,reptile'
                     },
-                    sort: ['-looks:species'],
+                    sort: ['-style:species'],
                     fields: {
-                        pet: ['looks:species', 'name']
+                        pet: ['style:species', 'name']
                     }
                 })
                 .then((result) => {
@@ -118,7 +122,8 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .fetchJsonApi({
                     filter: {
                         'style:looks.height': 'short'
-                    }
+                    },
+                    sort: ['id']
                 })
                 .then((result) => {
 
@@ -130,21 +135,25 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 });
         });
 
-        it('should return fields selected from json column', (done) => {
+        it('should return fields selected from nested json column', (done) => {
 
             repository.Models.PetModel
                 .forge()
                 .fetchJsonApi({
                     filter: {
                         'style:looks.height': 'short'
-                    }
+                    },
+                    fields: {
+                        pet: ['style:looks.tail']
+                    },
+                    sort: ['id']
                 })
                 .then((result) => {
 
                     expect(result.models).to.have.length(3);
-                    expect(result.models[0].get('name')).to.equal('Patches');
-                    expect(result.models[1].get('name')).to.equal('Grover');
-                    expect(result.models[2].get('name')).to.equal('Benny "The Terror" Terrier');
+                    expect(result.models[0].get('tail')).to.equal(null);
+                    expect(result.models[1].get('tail')).to.equal('long');
+                    expect(result.models[2].get('tail')).to.equal('short');
                     done();
                 });
         });
@@ -155,7 +164,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .forge()
                 .fetchJsonApi({
                     fields: {
-                        pets: ['style:looks.color', 'id']
+                        pet: ['style:looks.color', 'id']
                     },
                     sort: ['id']
                 })
@@ -346,7 +355,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .fetchJsonApi({
                     filter: {
                         lt: {
-                            'style:age:timestamp': new Date('January 1, 1979 01:00:00')
+                            'style:birthday:timestamp': (new Date('January 1, 1979 01:00:00')).toISOString()
                         }
                     },
                     sort: ['id']
@@ -366,7 +375,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .fetchJsonApi({
                     filter: {
                         lte: {
-                            'style:age:timestamp': new Date('January 1, 1979 01:00:00')
+                            'style:birthday:timestamp': (new Date('January 1, 1979 01:00:00')).toISOString()
                         }
                     },
                     sort: ['id']
@@ -387,7 +396,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .fetchJsonApi({
                     filter: {
                         gt: {
-                            'style:age:timestamp': new Date('July 1, 2016 17:00:41')
+                            'style:birthday:timestamp': (new Date('July 1, 2016 17:00:41')).toISOString()
                         }
                     },
                     sort: ['id']
@@ -407,7 +416,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .fetchJsonApi({
                     filter: {
                         gte: {
-                            'style:age:timestamp': new Date('July 1, 2016 17:00:41')
+                            'style:birthday:timestamp': (new Date('July 1, 2016 17:00:41')).toISOString()
                         }
                     },
                     sort: ['id']
@@ -436,6 +445,25 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
 
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('name')).to.equal('Patches');
+                    done();
+                });
+        });
+
+        it('should return results for json null and equality filter', (done) => {
+
+            repository.Models.PetModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        'style:looks.tail': 'null,enourmous'
+                    },
+                    sort: ['id']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('name')).to.equal('Godzilla');
+                    expect(result.models[1].get('name')).to.equal('Patches');
                     done();
                 });
         });
@@ -484,19 +512,43 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 });
         });
 
-
         it('should return results for json equality filter through a relationship', (done) => {
 
-            PersonModel
+            repository.Models.PersonModel
                 .forge()
                 .fetchJsonApi({
                     filter: {
-                        'pet.style:color': 'black,yellow'
-                    }
+                        'pet.style:looks.color': 'black,yellow'
+                    },
+                    sort: ['id']
                 })
                 .then((result) => {
 
                     expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('firstName')).to.equal('Barney');
+                    expect(result.models[1].get('firstName')).to.equal('Baby Bop');
+                    done();
+                });
+        });
+
+        it('should return results for combined json contains and equality filter', (done) => {
+
+            repository.Models.PetModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        like: {
+                            'style:looks.color': 'yel'
+                        },
+                        'style:looks.color': 'brown/white'
+                    },
+                    sort: ['id']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('name')).to.equal('Big Bird');
+                    expect(result.models[1].get('name')).to.equal('Benny "The Terror" Terrier');
                     done();
                 });
         });
