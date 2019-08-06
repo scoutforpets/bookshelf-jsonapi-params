@@ -101,6 +101,58 @@ fetchJsonApi(options, isCollection, type, (qb) => {
 });
 ```
 
+### Postgres JSONB Column Support
+JSONB columns can be filtered, sorted, and selected. The API is mostly the same, an additional character will be used to specify where a json column is, this will be a colon `:`
+
+To create an equality filter on a json column:
+```
+filter: {
+    'metaData:prop1': value
+}
+```
+
+Relational filtering is also supported with JSONB columns:
+```
+filter: {
+    'relation.metaData:prop1': value
+}
+```
+
+Filter multiple nested objects in the json field with a contains filter:
+```
+filter: {
+    like: {
+        'relation.metaData:obj1.prop1': value
+    }
+}
+```
+
+You must also specify the type of a property split by a second `:`, if filtering by gt, lt, gte, or lte
+
+Available types are `numeric`, `date`, and `timestamp`. Leaving the type out will default to a string.
+```
+filter: {
+    gt: {
+        'rel.metaData:obj1.prop2:numeric': 60
+    }
+}
+
+filter: {
+    gt: {
+        'rel.metaData:obj1.prop3:date': 01-01-2019
+    }
+}
+
+filter: {
+    gt: {
+        'rel.metaData:obj1.prop4:timestamp': 01-01-2019:00:00:00
+    }
+}
+```
+
+JSONB syntax can be used in `filter`, `fields`, and `sort`. It currently does not support aggregate functions and `group`
+
+
 ### Pagination and Sorting
 Under the hood, this plugin uses the excellent [bookshelf-page](https://github.com/anyong/bookshelf-page) plugin. Please see the available options that can be passed in via the `page` parameter.
 
