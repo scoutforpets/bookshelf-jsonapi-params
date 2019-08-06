@@ -20,7 +20,10 @@
     "bookshelf",
     "knex",
     "jsonapi",
-    "json api"
+    "json api",
+    "jsonb",
+    "jsonb filtering",
+    "relationship filtering"
   ],
   "author": {
     "name": "James Dixon",
@@ -30,7 +33,8 @@
   "contributors": [
     {
       "name": "Alec Hirsch",
-      "email": "alech1215@gmail.com"
+      "email": "alech1215@gmail.com",
+      "url": "https://github.com/alechirsch"
     }
   ],
   "license": "MIT",
