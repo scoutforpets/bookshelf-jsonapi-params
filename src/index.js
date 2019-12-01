@@ -71,6 +71,7 @@ export default (Bookshelf, options = {}) => {
         const internals = {};
         const { include, fields, sort, page = {}, filter, group } = opts;
         const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte'];
+        const aggregateFunctionRegex = new RegExp(/(count|sum|avg|max|min)\((.+)\)/);
 
         // Get a reference to the field being used as the id
         internals.idAttribute = this.constructor.prototype.idAttribute ?
@@ -283,7 +284,7 @@ export default (Bookshelf, options = {}) => {
             if (_isObject(fieldNames) && !_isEmpty(fieldNames)) {
 
                 // Format column names
-                fieldNames = internals.formatColumnNames(fieldNames);
+                fieldNames = internals.formatFieldNames(fieldNames);
 
                 // Process fields for each type/relation
                 _forEach(fieldNames, (fieldValue, fieldKey) => {
@@ -294,8 +295,7 @@ export default (Bookshelf, options = {}) => {
                         // Extract any aggregate function around the column name
                         let [column, jsonColumn, dataType] = value.split(':');
                         let aggregateFunction = null;
-                        const regex = new RegExp(/(count|sum|avg|max|min)\((.+)\)/g);
-                        const match = regex.exec(value);
+                        const match = value.match(aggregateFunctionRegex);
 
                         if (match) {
                             aggregateFunction = match[1];
@@ -394,7 +394,7 @@ export default (Bookshelf, options = {}) => {
 
                                     let [column, jsonColumn, dataType] = typeKey.split(':');
                                     // Remove all but the last table name, need to get number of dots
-                                    column = internals.formatRelation(internals.formatColumnNames([column])[0]);
+                                    column = internals.formatRelation(internals.formatFieldNames([column])[0]);
 
                                     // Determine if there are multiple filters to be applied
                                     let valueArray = split(String(typeValue), { keepQuotes: true, sep: ',' });
@@ -471,7 +471,7 @@ export default (Bookshelf, options = {}) => {
                             if (!_hasIn(filterValues.like, key)){
                                 let [column, jsonColumn, dataType] = key.split(':');
                                 // Remove all but the last table name, need to get number of dots
-                                column = internals.formatRelation(internals.formatColumnNames([column])[0]);
+                                column = internals.formatRelation(internals.formatFieldNames([column])[0]);
 
                                 if (!_isArray(value)){
                                     value = split(String(value), { keepQuotes: true, sep: ',' });
@@ -560,7 +560,7 @@ export default (Bookshelf, options = {}) => {
 
                     if (_has(fields, relation)) {
 
-                        const fieldNames = internals.formatColumnNames(fields);
+                        const fieldNames = internals.formatFieldNames(fields);
 
                         relations.push({
                             [relation]: (qb) => {
@@ -612,8 +612,8 @@ export default (Bookshelf, options = {}) => {
                 }
 
                 // Format column names according to Model settings
-                sortDesc = internals.formatColumnNames(sortDesc);
-                sortValues = internals.formatColumnNames(sortValues);
+                sortDesc = internals.formatFieldNames(sortDesc);
+                sortValues = internals.formatFieldNames(sortValues);
 
                 _forEach(sortValues, (sortBy) => {
 
@@ -643,7 +643,7 @@ export default (Bookshelf, options = {}) => {
 
             if (_isArray(groupValues) && !_isEmpty(groupValues)) {
 
-                groupValues = internals.formatColumnNames(groupValues);
+                groupValues = internals.formatFieldNames(groupValues);
 
                 internals.model.query((qb) => {
 
@@ -658,45 +658,47 @@ export default (Bookshelf, options = {}) => {
         /**
          * Turn a column into its {@link Model#format} format
          * leaving specified table names untouched.
-         * A helper function to formatColumnNames that does the work of formatting strictly on an array
-         * @param columnNames {array}
+         * A helper function to formatFieldNames that does the work of formatting strictly on an array
+         * @param fieldNames {array}
          * @returns formattedColumnNames {array}
          */
 
-        internals.formatColumnCollection = (columnNames = []) => {
+        internals.formatFieldCollection = (fieldNames = []) => {
 
-            return _map(columnNames, (columnName) => {
+            return _map(fieldNames, (fieldName) => {
 
-                const [column, jsonColumn, dataType] = columnName.split(':');
-                const columnComponents = column.split('.');
-                const lastIndex = columnComponents.length - 1;
-                const tableAttribute = columnComponents[lastIndex];
-                const formattedTableAttribute = _keys(this.format({ [tableAttribute]: undefined }))[0];
-                columnComponents[lastIndex] = formattedTableAttribute;
+                const [field, jsonField, dataType] = fieldName.split(':');
+                const fieldComponents = field.split('.');
+                const lastIndex = fieldComponents.length - 1;
+                const tableAttribute = fieldComponents[lastIndex];
+                const formattedFieldAttribute = aggregateFunctionRegex.test(tableAttribute)
+                    ? tableAttribute
+                    : _keys(this.format({ [tableAttribute]: undefined }))[0];
+                fieldComponents[lastIndex] = formattedFieldAttribute;
 
-                return _filter([columnComponents.join('.'), jsonColumn, dataType]).join(':');
+                return _filter([fieldComponents.join('.'), jsonField, dataType]).join(':');
             });
         };
 
         /**
          * Processes incoming parameters that represent columns names and
          * formats them using the internal {@link Model#format} function.
-         * @param columnNames {array|object}
+         * @param fieldNames {array|object}
          * @returns formattedColumnNames {array|object}
          */
-        internals.formatColumnNames = (columnNames = []) => {
+        internals.formatFieldNames = (fieldNames = []) => {
 
-            if (_isArray(columnNames)) {
-                return internals.formatColumnCollection(columnNames);
+            if (_isArray(fieldNames)) {
+                return internals.formatFieldCollection(fieldNames);
             }
 
             // process an object for which each value is a collection of columns to be formatted
-            _forOwn(columnNames, (columnCollection, columnNameKey) => {
+            _forOwn(fieldNames, (fieldCollection, fieldNameKey) => {
 
-                columnNames[columnNameKey] = internals.formatColumnCollection(columnCollection);
+                fieldNames[fieldNameKey] = internals.formatFieldCollection(fieldCollection);
             });
 
-            return columnNames;
+            return fieldNames;
         };
 
         /**
