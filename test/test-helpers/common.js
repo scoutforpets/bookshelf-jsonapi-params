@@ -938,6 +938,23 @@ export default function (repository, dbClient) {
                     });
             });
 
+            it('should return the maximum age', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        fields: {
+                            person: ['max(age)']
+                        }
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(1);
+                        expect(parseInt(result.models[0].get('max'))).to.equal(70);
+                        done();
+                    });
+            });
+
             it('should return the average age per gender', (done) => {
 
                 repository.Models.PersonModel
