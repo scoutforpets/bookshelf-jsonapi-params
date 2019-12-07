@@ -4,12 +4,12 @@
   "description": "Automatically applies relations, filters, and more from the JSON API spec to your Bookshelf.js results",
   "main": "./dist/index.js",
   "options": {
-    "mocha": "--require babel-core/register --bail test --exit"
+    "mocha": "--require babel-core/register --timeout 999999 --bail test --exit"
   },
   "scripts": {
     "build": "babel -q -L -D ./src/ --out-dir ./dist/",
     "prepublish": "npm run clean && npm run build",
-    "test": "./node_modules/.bin/mocha $npm_package_options_mocha",
+    "test": "./node_modules/.bin/mocha %npm_package_options_mocha%",
     "clean": "rm -rf dist/"
   },
   "repository": {
