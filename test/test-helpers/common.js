@@ -290,6 +290,49 @@ export default function (repository, dbClient) {
                         done();
                     });
             });
+
+            it('should only return the specified field for the included relationship', (done) => {
+
+                // TODO: both tests work when including the commented out sections, need to improve code so that they are not necessary
+                repository.Models.PersonModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: ['pet'],
+                        fields: {
+                            pet: ['name'/* , 'petOwnerId' */]
+                        }
+                    }, false)
+                    .then((person) => {
+
+                        expect(person.get('firstName')).to.equal('Barney');
+
+                        expect(person.related('pet').get('name')).to.equal('Big Bird');
+                        expect(person.related('pet').get('style')).to.be.undefined;
+                        done();
+                    });
+            });
+
+            it('should only return the specified field for the included relationship and base model', (done) => {
+
+                repository.Models.PersonModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: ['pet'],
+                        fields: {
+                            person: [/* 'id',  */'firstName'],
+                            pet: ['name'/* , 'petOwnerId' */]
+                        }
+                    }, false)
+                    .then((person) => {
+
+                        expect(person.get('firstName')).to.equal('Barney');
+                        expect(person.get('gender')).to.be.undefined;
+
+                        expect(person.related('pet').get('name')).to.equal('Big Bird');
+                        expect(person.related('pet').get('style')).to.be.undefined;
+                        done();
+                    });
+            });
         });
 
         describe('passing a `filters` parameter with a single filter', () => {

@@ -12,6 +12,7 @@ import {
     isFunction as _isFunction,
     isObject as _isObject,
     isObjectLike as _isObjectLike,
+    isString as _isString,
     pull as _pull,
     forIn as _forIn,
     keys as _keys,
@@ -71,6 +72,21 @@ export default (Bookshelf, options = {}) => {
         const internals = {};
         const { include, fields, sort, page = {}, filter, group } = opts;
         const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte'];
+
+        // Expand each include so that each individual relation has an item to hook into fields
+        // turns ['a.b.c.d', 'e'] into ['a.b.c.d', 'a.b.c', 'a.b', 'a', 'e']
+        let expandedIncludes = [];
+        _forEach(include, (includeString) => {
+            if (_isString(includeString)){
+                let splitIncludes = includeString.split('.');
+                let splitLength = splitIncludes.length;
+                for (let i = 0; i < splitLength; ++i) {
+                    expandedIncludes.push(splitIncludes.join('.'));
+                    splitIncludes.splice(-1);
+                }
+            }
+        });
+
 
         // Get a reference to the field being used as the id
         internals.idAttribute = this.constructor.prototype.idAttribute ?
@@ -318,7 +334,7 @@ export default (Bookshelf, options = {}) => {
 
                     // Only process the field if it's not a relation. Fields
                     // for relations are processed in `buildIncludes()`
-                    if (!_includes(include, fieldKey)) {
+                    if (!_includes(expandedIncludes, fieldKey)) {
 
                         // Add columns to query
                         internals.model.query((qb) => {
@@ -345,7 +361,8 @@ export default (Bookshelf, options = {}) => {
 
                             // JSON API considers relationships as fields, so we
                             // need to make sure the id of the relation is selected
-                            _forEach(include, (relation) => {
+                            // TODO: Use this function in build includes to select columns for the next relation
+                            _forEach(expandedIncludes, (relation) => {
 
                                 if (internals.isBelongsToRelation(relation, this)) {
                                     const relatedData = this.related(relation).relatedData;
@@ -564,9 +581,19 @@ export default (Bookshelf, options = {}) => {
 
                         relations.push({
                             [relation]: (qb) => {
-
-                                if (!internals.isBelongsToRelation(relation, this)) {
-                                    const relatedData = this[relation]().relatedData;
+                                // const relatedData = parentModel[relationKey]().relatedData;
+                                // foreignKey;
+                                // targetIdAttribute;
+                                // TODO: handle these relations
+                                // hasOne/through: foreignKey
+                                // hasMany/through: foreignKey
+                                // belongsTo/through: targetIdAttribute
+                                // belongsToMany: targetIdAttribute
+                                const relatedData = this[relation]().relatedData;
+                                if (relatedData.type === 'hasOne' || relatedData.type === 'hasMany'){
+                                    relatedData;
+                                }
+                                else if (!relatedData.type === 'belongsTo') {
                                     const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
 
                                     if (!_includes(fieldNames[relation], foreignKey)){
@@ -574,6 +601,7 @@ export default (Bookshelf, options = {}) => {
                                     }
                                 }
                                 fieldNames[relation] = internals.getColumnNames(fieldNames[relation]);
+                                // TODO: This must change to idAttribute
                                 if (!_includes(fieldNames[relation], 'id')){
                                     qb.column.apply(qb, ['id']);
                                 }
@@ -782,7 +810,7 @@ export default (Bookshelf, options = {}) => {
         internals.buildSort(sort);
 
         // Apply relations
-        internals.buildIncludes(include);
+        internals.buildIncludes(expandedIncludes);
 
         // Apply sparse fieldsets
         internals.buildFields(fields);
