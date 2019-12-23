@@ -39,3 +39,4 @@ dist
 test/test.sqlite
 
 !.travis.yml
+.vscode
