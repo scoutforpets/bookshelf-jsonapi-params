@@ -82,10 +82,6 @@ export default (Bookshelf, options = {}) => {
 
         // Used to determine which casting syntax is valid
         internals.client = Bookshelf.knex.client.config.client;
-        internals.textType = 'text';
-        if (internals.client === 'mysql' || internals.client === 'mssql'){
-            internals.textType = 'char';
-        }
 
         // Initialize an instance of the current model and clone the initial query
         internals.model =
@@ -413,14 +409,22 @@ export default (Bookshelf, options = {}) => {
                                             qb.where((qbWhere) => {
 
                                                 let where = 'where';
+                                                let textType = 'text';
+                                                if (internals.client === 'mysql' || internals.client === 'mssql'){
+                                                    textType = 'char';
+                                                }
                                                 _forEach(valueArray, (val) => {
 
+                                                    let likeQuery = `LOWER(CAST(:column: AS ${textType})) like LOWER(:value)`;
+                                                    if (internals.client === 'pg') {
+                                                        likeQuery = `CAST(:column: AS ${textType}) ilike :value`;
+                                                    }
                                                     qbWhere[where](
-                                                            Bookshelf.knex.raw(`LOWER(CAST(:column: AS ${internals.textType})) like LOWER(:value)`, {
-                                                                value: `%${val}%`,
-                                                                column
-                                                            })
-                                                        );
+                                                        Bookshelf.knex.raw(likeQuery, {
+                                                            value: `%${val}%`,
+                                                            column
+                                                        })
+                                                    );
 
                                                     // Change to orWhere after the first where
                                                     if (where === 'where'){
