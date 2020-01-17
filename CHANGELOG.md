@@ -1,5 +1,30 @@
 # Changelog
 
+### 1.3.0 (December 23, 2019)
+- Changed 'like' queries to use ilike, for gin indexing support
+
+### 1.2.0 (August 6, 2019)
+- Added support for JSONB filtering/sorting/selecting (Postgres only)
+- Extended tests to support postgres
+
+### 1.1.3 (June 19, 2018)
+- Fixed issue with filtering by strings that contain quotes
+
+### 1.1.2 (May 30, 2018)
+- Fixed bugs with formatting columns for database
+
+### 1.1.1 (April 24, 2018)
+- Fixed bugs with "null or" filtering
+
+### 1.1.0 (April 23, 2018)
+- Added filtering for null and not null values
+- Fixed relation filtering query bugs
+
+### 1.0.0 (December 8, 2017)
+- Support for filtering on n-level deep relationships
+- Support for sorting on n-level deep relationships
+- Support for filtering operators (like, gt, gte, lt, lte, not)
+
 ### 0.6.2 (June 13, 2016)
 - Resolves an issue where sorting on a multi-word column name (ex: startsAt) doesn't work properly.
 
