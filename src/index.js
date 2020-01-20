@@ -188,7 +188,6 @@ export default (Bookshelf, options = {}) => {
 
             internals.model.query((qb) => {
 
-                // TOOD: REMOVE THIS COMMENT
                 const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
                 if (relatedData.type === 'hasOne' || relatedData.type === 'hasMany'){
                     qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
@@ -581,8 +580,8 @@ export default (Bookshelf, options = {}) => {
                                 if (_has(includeFunctions, relation)) {
                                     includeFunctions[relation](qb);
                                 }
+
                                 // Fetch existing columns from query builder and combine them with fieldNames
-                                requiredRelationColumns;
                                 let columnsToSelect = _union(..._map(_filter(qb._statements, { grouping: 'columns' }), 'value'), fieldNames);
 
                                 // Clear existing columns
