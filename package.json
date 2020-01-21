@@ -47,7 +47,7 @@
     "babel-core": "6.26.0",
     "babel-plugin-add-module-exports": "0.2.1",
     "chai": "4.2.0",
-    "eslint": "2.11.1",
+    "eslint": "4.18.2",
     "eslint-config-hapi": "9.1.0",
     "eslint-plugin-hapi": "4.0.0",
     "mocha": "6.2.0",
@@ -56,7 +56,7 @@
     "babel-preset-es2015": "6.24.1",
     "bluebird": "3.5.5",
     "bookshelf": "0.15.1",
-    "knex": "0.19.1",
+    "knex": "0.19.5",
     "pg": "^4.5.3",
     "sqlite3": "4.0.9"
   },
