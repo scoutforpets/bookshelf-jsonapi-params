@@ -1,6 +1,6 @@
 # Changelog
 
-### 1.4.1 (January 20, 2020)
+### 1.4.1 (January 21, 2020)
 - Updated README
 
 ### 1.4.0 (January 20, 2020)
