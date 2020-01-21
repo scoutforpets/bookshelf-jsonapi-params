@@ -632,7 +632,7 @@ export default (Bookshelf, options = {}) => {
          *                  toy: {
          *                      model: toyModel,
          *                      tableName: 'toy',
-         *                      requiredColumns: ['pet_id']
+         *                      requiredColumns: ['id', 'pet_id']
          *                  }
          *              }
          *          }
