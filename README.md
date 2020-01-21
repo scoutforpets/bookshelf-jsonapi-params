@@ -79,20 +79,58 @@ If you're returning a single resource from a call such as `GET /customers/1`, ma
 
 `fetchJsonApi(options, isCollection, type, additionalQuery)` - calling `fetchJsonApi` with no options is just like a plain call to `Model#fetch` or `Model#fetchAll`. Note that in addition to the options below, you may also pass anything you can pass to `Model#fetch` or `Model#fetchAll`.
 
-`options`    | Description
-:------------- | :-------------
-filter _object_  | Filters a result set based specific field. Example: `/pets?filter[name]=max` would only return pets named max. Keywords can be added to filters to give more control over the results. Example: `/pets?filterType[like][pet]=ax` would only return pets that have "ax" in their name. The supported types are "like", "not", "lt", "lte", "gt", and "gte". Both "like" and "not" support multiple values by comma separation. Also, if your data has a string with a comma, you can filter for that comma by escaping the character with two backslashes. NOTE: This is not supported by JSON API spec.
-fields _object_   | Limits the fields returned as part of the record. Example: `/pets?fields[pets]=name` would return pet records with only the name field rather than every field. If there is an included relationship such as `/pets?include=owner`, fields can be provided to return only desired columns from that relationship `/pets?include=owner&fields[owner]=firstName`.  _Note:_ you may use aggregate functions such as `/pets?fields[pets]=count(id)`. Aggregated functions are not supported for relationship fields or json fields. Supported aggregate functions are "count", "sum", "avg", "max", "min".
-include _array_  | Returns relationships as part of the payload. Example: `/pets?include=owner` would return the pet record in addition to the full record of its owner. _Note:_ you may override an `include` parameter with your own Knex function rather than just a string representing the relationship name.
-page _object/false_  | Paginates the result set. Example: `/pets?page[limit]=25&page[offset]=0` would return the first 25 records. If you've passed default pagination parameters to the plugin, but would like to disable paging on a specific call, just set `page` to `false`.
-sort _array_     | Sorts the result set by specific fields. Example: `/pets?sort=-weight,birthDate` would return the records sorted by `weight` descending, then `birthDate` ascending
-group _array_     | Use it with `fields` param to group your results. Example: `/pets?fields[pets]=avg(age),gender&group=gender` would return return the average age of pets per gender. NOTE: This is not supported by JSON API spec.
+---
 
-See the **[specific section of the JSON API spec](http://jsonapi.org/format/#fetching-includes)** that deals with these parameters for more information.
+The first parameter `options`, is passed in as an object that can have the following properties.
+```
+{
+    filter: {
+        // Available filter objects
+        gt: {},
+        gte: {},
+        lt: {},
+        lte: {},
+        not: {},
+        like: {}
+        'person.age': 25
+    },
+    fields: {
+        person: ['name'],
+        pet: ['name']
+    },
+    include: ['pet'],
+    sort: ['name'],
+}
+```
+
+#### filter
+Filter is passed in as an object and filters a result set based specific field. Example: `/pets?filter[name]=max` would only return pets named max. Keywords can be added to filters to give more control over the results. Example: `/pets?filterType[like][pet]=ax` would only return pets that have "ax" in their name. The supported types are "like", "not", "lt", "lte", "gt", and "gte". Both "like" and "not" support multiple values by comma separation. Also, if your data has a string with a comma, you can filter for that comma by escaping the character with two backslashes. NOTE: This is not supported by JSON API spec.
+
+#### fields
+Fields is passed in as an object and selects desired columns from your base table and also relationships.
+ Example: `/pets?fields[pets]=name` would return pet records with only the name field rather than every field. If there is an included relationship such as `/pets?include=owner`, fields can be provided to return only desired columns from that relationship `/pets?include=owner&fields[owner]=firstName`.  _Note:_ you may use aggregate functions such as `/pets?fields[pets]=count(id)`. Aggregated functions are not supported for relationship fields or json fields. Supported aggregate functions are "count", "sum", "avg", "max", "min".
+
+#### include
+Passed in as an array of strings, and gets passed through to Bookshelf as `withRelated`. Returns relationships as part of the payload. Example: `/pets?include=owner` would return the pet record in addition to the full record of its owner. _Note:_ you may override an `include` parameter with your own Knex function rather than just a string representing the relationship name.
+
+#### page
+Page can be an object or `false`. This  paginates the result set. Example: `/pets?page[limit]=25&page[offset]=0` would return the first 25 records. `page` and `pageSize` are also supported. If you've passed default pagination parameters to the plugin, but would like to disable paging on a specific call, just set `page` to `false`.
+
+#### sort
+Passed in as an array of strings. Sorts the result set by specific fields. Example: `/pets?sort=-weight,birthDate` would return the records sorted by `weight` descending, then `birthDate` ascending. You can also sort your list by a field on a relationship, `/pet?sort=owner.firstName`
+
+#### group
+Passed in as an array string. Use it with `fields` param to group your results. Example: `/pets?fields[pets]=avg(age),gender&group=gender` would return return the average age of pets per gender. NOTE: This is not supported by JSON API spec.
+
+---
 
 `isCollection` - by default, internal calls will be made to `fetchAll`. If you're returning a single resource, set `isCollection` to `false`.
 
+---
+
 `type` - by default, the JSON API resource type will be set using the `tableName` defined in your Bookshelf model. If your resource type is different, you can pass the resource type into `fetchJsonApi` directly.
+
+---
 
 `additionalQuery` - allows you to modify the query builder prior to to execution of the query. This must be a function that takes in the knex Query Builder object. For example:
 ```
@@ -100,6 +138,8 @@ fetchJsonApi(options, isCollection, type, (qb) => {
     qb.whereRaw('extract(year from date)=2018');
 });
 ```
+
+---
 
 ### Postgres JSONB Column Support
 JSONB columns can be filtered, sorted, and selected. The API is mostly the same, an additional character will be used to specify where a json column is, this will be a colon `:`
