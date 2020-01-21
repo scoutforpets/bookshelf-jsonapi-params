@@ -1,5 +1,9 @@
 # Changelog
 
+### 1.4.0 (January 20, 2020)
+- Added ability to select fields on an included relationship n-levels deep by use of the `fields` parameter
+- Updated jsonb `like` filtering to support gin indexing
+
 ### 1.3.0 (December 23, 2019)
 - Changed 'like' queries to use ilike, for gin indexing support
 
