@@ -110,6 +110,7 @@ export default function (repository, dbClient) {
 
                         table.increments('id').primary();
                         table.string('type');
+                        table.string('color');
                         table.integer('pet_id');
 
                     })
@@ -232,11 +233,13 @@ export default function (repository, dbClient) {
                     repository.Models.ToyModel.forge().save({
                         id: 1,
                         type: 'skate',
+                        color: 'red',
                         pet_id: 1
                     }),
                     repository.Models.ToyModel.forge().save({
                         id: 2,
                         type: 'car',
+                        color: 'black',
                         pet_id: 2
                     })
                 );
@@ -287,6 +290,97 @@ export default function (repository, dbClient) {
 
                         expect(person.get('firstName')).to.equal('Baby Bop');
                         expect(person.get('gender')).to.be.undefined;
+                        done();
+                    });
+            });
+
+            it('should only return the specified field for the included relationship', (done) => {
+
+                repository.Models.PersonModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: [{
+                            pet(qb) {
+
+                                qb.select('name');
+                            }
+                        }]
+                    }, false)
+                    .then((person) => {
+
+                        expect(person.get('firstName')).to.equal('Barney');
+                        expect(person.related('pet').get('name')).to.equal('Big Bird');
+                        expect(person.related('pet').get('style')).to.be.undefined;
+                        done();
+                    });
+            });
+
+            it('should only return the specified field for the included relationship combined with fields parameter', (done) => {
+
+                repository.Models.PersonModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: [{
+                            pet(qb) {
+
+                                qb.select('name');
+                            }
+                        }],
+                        fields: {
+                            pet: ['style']
+                        }
+                    }, false)
+                    .then((person) => {
+
+                        expect(person.get('firstName')).to.equal('Barney');
+                        expect(person.related('pet').get('name')).to.equal('Big Bird');
+                        expect(person.related('pet').get('style')).to.not.be.undefined;
+                        done();
+                    });
+            });
+
+            it('should only return the specified field for the included relationship', (done) => {
+
+                repository.Models.PersonModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: ['pet'],
+                        fields: {
+                            pet: ['name']
+                        }
+                    }, false)
+                    .then((person) => {
+
+                        expect(person.get('firstName')).to.equal('Barney');
+
+                        expect(person.related('pet').get('name')).to.equal('Big Bird');
+                        expect(person.related('pet').get('style')).to.be.undefined;
+                        done();
+                    });
+            });
+
+            it('should only return the specified field for the included relationship and base model', (done) => {
+
+                repository.Models.PersonModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: ['pet.toy'],
+                        fields: {
+                            person: ['firstName'],
+                            pet: ['name'],
+                            'pet.toy': ['type']
+                        }
+                    }, false)
+                    .then((person) => {
+
+                        expect(person.get('firstName')).to.equal('Barney');
+                        expect(person.get('gender')).to.be.undefined;
+
+                        expect(person.related('pet').get('name')).to.equal('Big Bird');
+                        expect(person.related('pet').get('style')).to.be.undefined;
+
+                        expect(person.related('pet').related('toy').get('type')).to.equal('skate');
+                        expect(person.related('pet').related('toy').get('color')).to.be.undefined;
                         done();
                     });
             });

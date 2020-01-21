@@ -66,7 +66,7 @@ module.exports.buildFilterWithType = function (qb, knex, filterType, values, col
             _forEach(values, (value) => {
 
                 const subBindings = [...bindings, `%${value}%`];
-                qbWhere[where](knex.raw(`LOWER((${jsonSQL})::text) like LOWER(?)`, subBindings));
+                qbWhere[where](knex.raw(`(${jsonSQL})::text ilike ?`, subBindings));
 
                 // Change to orWhere after the first where
                 if (where === 'where'){

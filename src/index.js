@@ -12,11 +12,21 @@ import {
     isFunction as _isFunction,
     isObject as _isObject,
     isObjectLike as _isObjectLike,
+    isString as _isString,
     pull as _pull,
     forIn as _forIn,
     keys as _keys,
     map as _map,
-    filter as _filter
+    filter as _filter,
+    sortBy as _sortBy,
+    initial as _initial,
+    replace as _replace,
+    get as _get,
+    set as _set,
+    last as _last,
+    uniq as _uniq,
+    union as _union
+
 } from 'lodash';
 
 import split from 'split-string';
@@ -274,7 +284,7 @@ export default (Bookshelf, options = {}) => {
          * Build a query based on the `fields` parameter.
          * @param  fieldNames {object}
          */
-        internals.buildFields = (fieldNames = {}) => {
+        internals.buildFields = (fieldNames = {}, expandedIncludes, includesMap) => {
 
             if (_isObject(fieldNames) && !_isEmpty(fieldNames)) {
 
@@ -314,7 +324,7 @@ export default (Bookshelf, options = {}) => {
 
                     // Only process the field if it's not a relation. Fields
                     // for relations are processed in `buildIncludes()`
-                    if (!_includes(include, fieldKey)) {
+                    if (!_includes(expandedIncludes, fieldKey)) {
 
                         // Add columns to query
                         internals.model.query((qb) => {
@@ -341,25 +351,12 @@ export default (Bookshelf, options = {}) => {
 
                             // JSON API considers relationships as fields, so we
                             // need to make sure the id of the relation is selected
-                            _forEach(include, (relation) => {
-
-                                if (internals.isBelongsToRelation(relation, this)) {
-                                    const relatedData = this.related(relation).relatedData;
-                                    let relationId;
-                                    if (relatedData.throughForeignKey) {
-                                        relationId = relatedData.throughForeignKey;
-                                    }
-                                    else {
-                                        relationId = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
-                                    }
-                                    qb.select(`${internals.modelName}.${relationId}`);
-                                }
-                            });
+                            if (!_isEmpty(includesMap.relations)) {
+                                qb.select(includesMap.requiredColumns.map((column) => `${internals.modelName}.${column}`));
+                            }
                         });
                     }
                 });
-
-
             }
         };
 
@@ -554,34 +551,60 @@ export default (Bookshelf, options = {}) => {
          * Build a query based on the `include` parameter.
          * @param  includeValues {array}
          */
-        internals.buildIncludes = (includeValues) => {
+        internals.buildIncludes = (expandedIncludes, includesMap) => {
 
-            if (_isArray(includeValues) && !_isEmpty(includeValues)) {
+            if (_isArray(expandedIncludes) && !_isEmpty(expandedIncludes)) {
 
                 const relations = [];
 
-                _forEach(includeValues, (relation) => {
+                let includeFunctions = _last(expandedIncludes);
+                if (_isObject(includeFunctions)) {
+                    expandedIncludes = _initial(expandedIncludes, includeFunctions);
+                }
 
-                    if (_has(fields, relation)) {
+                _forEach(expandedIncludes, (relation) => {
 
-                        const fieldNames = internals.formatColumnNames(fields);
+                    if (_has(fields, relation) || _has(includeFunctions, relation)) {
+
+                        let fieldNames = internals.formatColumnNames(_get(fields, relation));
+
+                        let relationGetter = `relations.${relation.split('.').join('.relations.')}`;
+                        let relationObject = _get(includesMap, relationGetter);
+                        let requiredRelationColumns = _get(relationObject, 'requiredColumns');
+
+                        // Combine the required columns with the desired columns
+                        if (requiredRelationColumns && requiredRelationColumns.length) {
+                            fieldNames.push(...requiredRelationColumns);
+                            fieldNames = _uniq(fieldNames);
+                        }
 
                         relations.push({
                             [relation]: (qb) => {
 
-                                if (!internals.isBelongsToRelation(relation, this)) {
-                                    const relatedData = this[relation]().relatedData;
-                                    const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
+                                if (_has(includeFunctions, relation)) {
+                                    includeFunctions[relation](qb);
+                                }
 
-                                    if (!_includes(fieldNames[relation], foreignKey)){
-                                        qb.column.apply(qb, [foreignKey]);
+                                // Fetch existing columns from query builder and combine them with fieldNames
+                                let columnsToSelect = _union(..._map(_filter(qb._statements, { grouping: 'columns' }), 'value'), fieldNames);
+
+                                // Clear existing columns
+                                qb.clearSelect();
+
+                                // Put the table name in front of each column in cases where there are joins in the subquery
+                                columnsToSelect = _map(columnsToSelect, (fieldName) =>  {
+
+                                    // If there is already an existing table name in the query, do not replace it
+                                    if (_includes(fieldName, '.')) {
+                                        return fieldName;
                                     }
+                                    return `${relationObject.tableName}.${fieldName}`;
+                                });
+
+                                // Select the columns
+                                if (columnsToSelect.length) {
+                                    qb.columns(columnsToSelect);
                                 }
-                                fieldNames[relation] = internals.getColumnNames(fieldNames[relation]);
-                                if (!_includes(fieldNames[relation], 'id')){
-                                    qb.column.apply(qb, ['id']);
-                                }
-                                qb.column.apply(qb, [fieldNames[relation]]);
                             }
                         });
                     }
@@ -592,6 +615,153 @@ export default (Bookshelf, options = {}) => {
 
                 // Assign the relations to the options passed to fetch/All
                 _assign(opts, { withRelated: relations });
+            }
+        };
+
+        /* *
+         * Used for generating columns to automatically include on a relationship
+         * @returns {Object} Object nested map of included relationships, where each relationship has all required columns for mapping relationships to their parents
+         *
+         * example:
+         * {
+         *      model: personModel,
+         *      tableName: 'person',
+         *      requiredColumns: ['id'],
+         *      relations: {
+         *          pet: {
+         *              model: petModel,
+         *              tableName: 'pet',
+         *              requiredColumns: ['id', 'pet_owner_id'], // id is required for the toy relationship
+         *              relations: {
+         *                  toy: {
+         *                      model: toyModel,
+         *                      tableName: 'toy',
+         *                      requiredColumns: ['id', 'pet_id']
+         *                  }
+         *              }
+         *          }
+         *      }
+         * }
+         */
+        internals.setupIncludesMap = (expandedIncludes) => {
+
+            const includesMap = {
+                model: internals.model,
+                requiredColumns: [internals.model.idAttribute],
+                relations: {}
+            };
+
+            // expandedIncludes is ordered by the lowest amount of '.' characters
+            // Each item in expandedIncludes can be assumed to already be in the includes map by the time the forEach iteration reaches that item
+            _forEach(expandedIncludes, (includeValue) => {
+
+                // Ignore the value if it's not a string, there is another string to represent the includes that are functions
+                if (_isObject(includeValue)) {
+                    return;
+                }
+
+                let splitIncludeValue = includeValue.split('.');
+                // Create a getter/setter string
+                // Getter string for 'a.b.c' will look like 'relations.a.relations.b.relations.c
+                let getterString = `relations.${splitIncludeValue.join('.relations.')}`;
+
+                // The parent model object, the one before this new relation
+                let parent = includesMap;
+
+                // If this relation is not on the first level, get the parent
+                if (splitIncludeValue.length > 1) {
+                    parent = _get(includesMap, `relations.${_initial(splitIncludeValue).join('.relations.')}`);
+                }
+
+                // Get the model and relationship
+                let relationName = _last(splitIncludeValue);
+                let relatedData = parent.model[relationName]().relatedData;
+                let relationTableName = relatedData.target.prototype.tableName;
+                let relationModel = relatedData.target.forge();
+
+
+                // Initialize the relation by setting the object on the parent
+                let relationObject = {
+                    // Always set the 'id' as required
+                    model: relationModel,
+                    tableName: relationTableName,
+                    requiredColumns: [relationModel.idAttribute],
+                    relations: {}
+                };
+                _set(includesMap, getterString, relationObject);
+
+                const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
+
+                if (relatedData.type === 'hasOne' || relatedData.type === 'hasMany'){
+                    // Parent: is relatedData.parentIdAttribute, already set by default
+                    // Relation: is foreignKey
+                    relationObject.requiredColumns.push(foreignKey);
+                }
+                else if (relatedData.type === 'belongsTo' && !relatedData.throughTableName){
+                    // Parent: foreignKey
+                    parent.requiredColumns.push(foreignKey);
+                    // Relation: relatedData.targetIdAttribute, set by default
+
+                }
+                // Belongs To Through, do not need to set
+                //  Parent: is parentIdAttribute, set by default
+                //  Relation: is targetIdAttribute, set by default
+
+                // Belongs To Many, do not need to set
+                //  Parent: relatedData.parentIdAttribute, set by default
+                //  Relation: relatedData.targetIdAttribute, set by default
+            });
+
+            return includesMap;
+        };
+
+        /**
+         * Expand each include so that each individual relation has an item to hook into fields
+         * turns ['a.b.c.d', 'e'] into ['a', 'e', 'a.b', 'a.b.c', 'a.b.c.d']
+         * @param   include {array}
+         */
+        internals.buildExpandedIncludes = (includes) => {
+
+            let expandedIncludes = [];
+            let includeFunctions = {};
+            _forEach(includes, (includeItem) => {
+
+                if (_isString(includeItem)) {
+                    internals.expandedIncludesHelper(includeItem, expandedIncludes);
+                }
+                else if (_isObject(includeItem)) {
+                    // Handle when query buidlers are passed into include
+                    _forOwn(includeItem, (includeFunction, includeString) => {
+
+                        internals.expandedIncludesHelper(includeString, expandedIncludes);
+                        includeFunctions[includeString] = includeFunction;
+                    });
+                }
+            });
+
+            // Sort ascending by the amount of `.` separator
+            expandedIncludes = _sortBy(_uniq(expandedIncludes), [
+                (item) => {
+
+                    return _replace(item, /[^\.]/g, '').length;
+                }
+            ]);
+
+            // Push the includedFunctions at the end, if there are any
+            if (!_isEmpty(includeFunctions)) {
+                expandedIncludes.push(includeFunctions);
+            }
+
+            return expandedIncludes;
+        };
+
+        internals.expandedIncludesHelper = (includeString, expandedIncludes) => {
+
+            let splitIncludes = includeString.split('.');
+            let splitLength = splitIncludes.length;
+            for (let i = 0; i < splitLength; ++i) {
+                expandedIncludes.push(splitIncludes.join('.'));
+                splitIncludes.splice(-1);
             }
         };
 
@@ -786,10 +956,12 @@ export default (Bookshelf, options = {}) => {
         internals.buildSort(sort);
 
         // Apply relations
-        internals.buildIncludes(include);
+        const expandedIncludes = internals.buildExpandedIncludes(include);
+        const includesMap = internals.setupIncludesMap(expandedIncludes);
+        internals.buildIncludes(expandedIncludes, includesMap);
 
         // Apply sparse fieldsets
-        internals.buildFields(fields);
+        internals.buildFields(fields, expandedIncludes, includesMap);
 
         // Apply extra query which was passed in as a parameter
         if (_isFunction(additionalQuery)){
