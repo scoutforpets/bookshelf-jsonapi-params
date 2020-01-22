@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.4.2 (January 22, 2020)
+- Ensure the original options parameter does not get modified by deep cloning before processing
+
 ### 1.4.1 (January 21, 2020)
 - Updated README
 
