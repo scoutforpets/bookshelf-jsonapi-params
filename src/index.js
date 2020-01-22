@@ -25,7 +25,8 @@ import {
     set as _set,
     last as _last,
     uniq as _uniq,
-    union as _union
+    union as _union,
+    cloneDeep as _cloneDeep
 
 } from 'lodash';
 
@@ -76,7 +77,7 @@ export default (Bookshelf, options = {}) => {
      */
     const fetchJsonApi = function (opts, isCollection = true, type, additionalQuery) {
 
-        opts = opts || {};
+        opts = _cloneDeep(opts) || {};
 
         const internals = {};
         const { include, fields, sort, page = {}, filter, group } = opts;
