@@ -10,11 +10,43 @@ export default function (repository, dbClient) {
 
         repository.Models = {};
 
+        repository.Models.HouseModel = repository.Model.extend({
+            tableName: 'house',
+            people: function () {
+
+                return this.belongsToMany(repository.Models.PersonModel, 'person_house', 'house_id', 'person_id');
+            },
+
+            format: function (attrs) {
+                // This recreates the format behavior for those working with knex
+                return _.reduce(attrs, (result, val, key) => {
+
+                    const columnComponentParts = key.split('.').map(_.snakeCase);
+                    result[columnComponentParts.join('.')] = val;
+                    return result;
+                }, {});
+            }
+        });
+
         repository.Models.ToyModel = repository.Model.extend({
             tableName: 'toy',
             pet: function () {
 
-                return this.belongsTo(repository.Models.PetModel);
+                return this.belongsTo(repository.Models.PetModel, 'pet_id');
+            },
+            owner: function () {
+
+                return this.belongsTo(repository.Models.PersonModel, 'pet_owner_id').through(repository.Models.PetModel, 'pet_id');
+            },
+
+            format: function (attrs) {
+                // This recreates the format behavior for those working with knex
+                return _.reduce(attrs, (result, val, key) => {
+
+                    const columnComponentParts = key.split('.').map(_.snakeCase);
+                    result[columnComponentParts.join('.')] = val;
+                    return result;
+                }, {});
             }
         });
 
@@ -73,6 +105,11 @@ export default function (repository, dbClient) {
             pet: function () {
 
                 return this.hasOne(repository.Models.PetModel, 'pet_owner_id');
+            },
+
+            houses: function () {
+
+                return this.belongsToMany(repository.Models.HouseModel, 'person_house', 'person_id', 'house_id');
             }
         });
 
@@ -84,6 +121,8 @@ export default function (repository, dbClient) {
 
             // Build the schema and add some data
             Promise.join(
+                repository.knex.schema.dropTableIfExists('person_house'),
+                repository.knex.schema.dropTableIfExists('house'),
                 repository.knex.schema.dropTableIfExists('person'),
                 repository.knex.schema.dropTableIfExists('pet'),
                 repository.knex.schema.dropTableIfExists('toy')
@@ -91,6 +130,14 @@ export default function (repository, dbClient) {
             .then(() => {
 
                 return Promise.join(
+                    repository.knex.schema.createTable('house', (table) => {
+
+                        table.increments('id').primary();
+                        table.string('color');
+                        table.string('year_built');
+                        table.integer('bedrooms');
+                        table.integer('bathrooms');
+                    }),
                     repository.knex.schema.createTable('person', (table) => {
 
                         table.increments('id').primary();
@@ -98,6 +145,12 @@ export default function (repository, dbClient) {
                         table.integer('age');
                         table.string('gender');
                         table.string('type');
+                    }),
+                    repository.knex.schema.createTable('person_house', (table) => {
+
+                        table.increments('id').primary();
+                        table.integer('person_id');
+                        table.integer('house_id');
                     }),
                     repository.knex.schema.createTable('pet', (table) => {
 
@@ -119,6 +172,13 @@ export default function (repository, dbClient) {
             .then(() => {
 
                 return Promise.join(
+                    repository.Models.HouseModel.forge().save({
+                        id: 1,
+                        color: 'yellow',
+                        year_built: '1957',
+                        bedrooms: 3,
+                        bathrooms: 4
+                    }),
                     repository.Models.PersonModel.forge().save({
                         id: 1,
                         firstName: 'Barney',
@@ -154,6 +214,14 @@ export default function (repository, dbClient) {
                         age: 3,
                         gender: 'm',
                         type: null
+                    }),
+                    repository.knex('person_house').insert({
+                        house_id: 1,
+                        person_id: 1
+                    }),
+                    repository.knex('person_house').insert({
+                        house_id: 1,
+                        person_id: 3
                     }),
                     repository.Models.PetModel.forge().save({
                         id: 1,
@@ -294,6 +362,23 @@ export default function (repository, dbClient) {
                     });
             });
 
+            it('should only return the specified field for the record with a type specified', (done) => {
+
+                repository.Models.PersonModel
+                    .where({ id: 2 })
+                    .fetchJsonApi({
+                        fields: {
+                            peoples: ['firstName']
+                        }
+                    }, false, 'peoples')
+                    .then((person) => {
+
+                        expect(person.get('firstName')).to.equal('Baby Bop');
+                        expect(person.get('gender')).to.be.undefined;
+                        done();
+                    });
+            });
+
             it('should only return the specified field for the included relationship', (done) => {
 
                 repository.Models.PersonModel
@@ -381,6 +466,54 @@ export default function (repository, dbClient) {
 
                         expect(person.related('pet').related('toy').get('type')).to.equal('skate');
                         expect(person.related('pet').related('toy').get('color')).to.be.undefined;
+                        done();
+                    });
+            });
+
+            it('should only return the specified field for the included relationship and base model using belongsToMany', (done) => {
+
+                repository.Models.HouseModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: ['people'],
+                        fields: {
+                            house: ['id'],
+                            people: ['firstName']
+                        }
+                    }, false)
+                    .then((house) => {
+
+                        expect(house.id).to.not.be.undefined;
+                        expect(house.get('color')).to.be.undefined;
+                        const people = house.related('people');
+                        people.forEach((person) => {
+
+                            expect(person.get('firstName')).to.not.be.undefined;
+                            expect(person.get('gender')).to.be.undefined;
+                        });
+                        done();
+                    });
+            });
+
+            it('should only return the specified field for the included relationship and base model using belongsTo.through', (done) => {
+
+                repository.Models.ToyModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: ['owner'],
+                        fields: {
+                            toy: ['id'],
+                            owner: ['firstName']
+                        }
+                    }, false)
+                    .then((toy) => {
+
+                        expect(toy.get('id')).to.equal(1);
+                        expect(toy.get('color')).to.be.undefined;
+
+                        expect(toy.related('owner').get('firstName')).to.equal('Barney');
+                        expect(toy.related('owner').get('gender')).to.be.undefined;
+
                         done();
                     });
             });

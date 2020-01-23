@@ -89,7 +89,8 @@ export default (Bookshelf, options = {}) => {
 
         // Get a reference to the current model name. Note that if no type is
         // explicitly passed, the tableName will be used
-        internals.modelName = type ? type : this.constructor.prototype.tableName;
+        internals.modelName = this.constructor.prototype.tableName;
+        internals.modelType = type;
 
         // Used to determine which casting syntax is valid
         internals.client = Bookshelf.knex.client.config.client;
@@ -309,7 +310,7 @@ export default (Bookshelf, options = {}) => {
                             column = match[2];
                         }
 
-                        if (!fieldKey) {
+                        if (!fieldKey || fieldKey === internals.modelType) {
                             if (!_includes(column, '.')) {
                                 column = `${internals.modelName}.${column}`;
                             }
@@ -334,7 +335,14 @@ export default (Bookshelf, options = {}) => {
                                 qb.distinct();
                             }
 
-                            _forEach(fieldNames[fieldKey], (column) => {
+
+                            let fieldsToSelect = fieldNames[fieldKey];
+                            // JSON API considers relationships as fields, so we
+                            // need to make sure the id of the relation is selected
+                            if (!_isEmpty(includesMap.relations)) {
+                                fieldsToSelect = _uniq(_union(fieldsToSelect, includesMap.requiredColumns.map((column) => `${internals.modelName}.${column}`)));
+                            }
+                            _forEach(fieldsToSelect, (column) => {
 
                                 if (column.aggregateFunction) {
                                     qb[column.aggregateFunction](`${column.column} as ${column.aggregateFunction}`);
@@ -349,12 +357,6 @@ export default (Bookshelf, options = {}) => {
                                     }
                                 }
                             });
-
-                            // JSON API considers relationships as fields, so we
-                            // need to make sure the id of the relation is selected
-                            if (!_isEmpty(includesMap.relations)) {
-                                qb.select(includesMap.requiredColumns.map((column) => `${internals.modelName}.${column}`));
-                            }
                         });
                     }
                 });
@@ -698,16 +700,21 @@ export default (Bookshelf, options = {}) => {
                     // Relation: is foreignKey
                     relationObject.requiredColumns.push(foreignKey);
                 }
-                else if (relatedData.type === 'belongsTo' && !relatedData.throughTableName){
-                    // Parent: foreignKey
-                    parent.requiredColumns.push(foreignKey);
-                    // Relation: relatedData.targetIdAttribute, set by default
+                else if (relatedData.type === 'belongsTo'){
+                    if (relatedData.throughTableName) {
+                        // Belongs To Through
+                        // Parent: Use throughForeignKey
+                        parent.requiredColumns.push(relatedData.throughForeignKey);
+                        // Relation: is targetIdAttribute, set by default
 
+                    }
+                    else {
+                        // Belongs To
+                        // Parent: foreignKey
+                        parent.requiredColumns.push(foreignKey);
+                        // Relation: relatedData.targetIdAttribute, set by default
+                    }
                 }
-                // Belongs To Through, do not need to set
-                //  Parent: is parentIdAttribute, set by default
-                //  Relation: is targetIdAttribute, set by default
-
                 // Belongs To Many, do not need to set
                 //  Parent: relatedData.parentIdAttribute, set by default
                 //  Relation: relatedData.targetIdAttribute, set by default
@@ -846,6 +853,7 @@ export default (Bookshelf, options = {}) => {
                 const columnComponents = column.split('.');
                 const lastIndex = columnComponents.length - 1;
                 const tableAttribute = columnComponents[lastIndex];
+                // this only gets hit for current model, not relationships
                 const formattedTableAttribute = _keys(this.format({ [tableAttribute]: undefined }))[0];
                 columnComponents[lastIndex] = formattedTableAttribute;
 

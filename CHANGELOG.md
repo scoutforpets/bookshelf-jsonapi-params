@@ -1,5 +1,9 @@
 # Changelog
 
+### 1.4.3 (January 23, 2020)
+- Fixed issue where `type` parameter was not being used
+- Fixed issue with selection columns on a relationship of type belongsTo().through()
+
 ### 1.4.2 (January 22, 2020)
 - Ensure the original options parameter does not get modified by deep cloning before processing
 
