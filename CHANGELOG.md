@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.4.4 (January 23, 2020)
+- Fixed issue with belongsTo().through() where the foreign key is not set and a default key needs to be created
+
 ### 1.4.3 (January 23, 2020)
 - Fixed issue where `type` parameter was not being used
 - Fixed issue with selection columns on a relationship of type belongsTo().through()

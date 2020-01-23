@@ -702,9 +702,10 @@ export default (Bookshelf, options = {}) => {
                 }
                 else if (relatedData.type === 'belongsTo'){
                     if (relatedData.throughTableName) {
+                        const throughForeignKey = relatedData.throughForeignKey ? relatedData.throughForeignKey : `${inflection.singularize(relatedData.throughTableName)}_${relatedData.throughIdAttribute}`;
                         // Belongs To Through
-                        // Parent: Use throughForeignKey
-                        parent.requiredColumns.push(relatedData.throughForeignKey);
+                        // Parent: Use throughForeignKey or `${throughTableName}_${throughIdAttribute}`
+                        parent.requiredColumns.push(throughForeignKey);
                         // Relation: is targetIdAttribute, set by default
 
                     }
