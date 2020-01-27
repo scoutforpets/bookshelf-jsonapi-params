@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.4.5 (January 27, 2020)
+- Fixed issue where including a relationship with a query build that did not have a select clause, did not select `*`, but intead only the required id columns
+
 ### 1.4.4 (January 23, 2020)
 - Fixed issue with belongsTo().through() where the foreign key is not set and a default key needs to be created
 

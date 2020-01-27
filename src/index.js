@@ -573,13 +573,7 @@ export default (Bookshelf, options = {}) => {
 
                         let relationGetter = `relations.${relation.split('.').join('.relations.')}`;
                         let relationObject = _get(includesMap, relationGetter);
-                        let requiredRelationColumns = _get(relationObject, 'requiredColumns');
 
-                        // Combine the required columns with the desired columns
-                        if (requiredRelationColumns && requiredRelationColumns.length) {
-                            fieldNames.push(...requiredRelationColumns);
-                            fieldNames = _uniq(fieldNames);
-                        }
 
                         relations.push({
                             [relation]: (qb) => {
@@ -589,24 +583,29 @@ export default (Bookshelf, options = {}) => {
                                 }
 
                                 // Fetch existing columns from query builder and combine them with fieldNames
-                                let columnsToSelect = _union(..._map(_filter(qb._statements, { grouping: 'columns' }), 'value'), fieldNames);
+                                let selectFromQB = _filter(qb._statements, { grouping: 'columns' });
+                                if (selectFromQB.length || fieldNames.length) {
+                                    // Combine the required columns with the desired columns
+                                    let requiredRelationColumns = _get(relationObject, 'requiredColumns');
+                                    let columnsToSelect = _uniq(_union(..._map(selectFromQB, 'value'), fieldNames, requiredRelationColumns));
 
-                                // Clear existing columns
-                                qb.clearSelect();
+                                    // Clear existing columns
+                                    qb.clearSelect();
 
-                                // Put the table name in front of each column in cases where there are joins in the subquery
-                                columnsToSelect = _map(columnsToSelect, (fieldName) =>  {
+                                    // Put the table name in front of each column in cases where there are joins in the subquery
+                                    columnsToSelect = _map(columnsToSelect, (fieldName) =>  {
 
-                                    // If there is already an existing table name in the query, do not replace it
-                                    if (_includes(fieldName, '.')) {
-                                        return fieldName;
+                                        // If there is already an existing table name in the query, do not replace it
+                                        if (_includes(fieldName, '.')) {
+                                            return fieldName;
+                                        }
+                                        return `${relationObject.tableName}.${fieldName}`;
+                                    });
+
+                                    // Select the columns
+                                    if (columnsToSelect.length) {
+                                        qb.columns(columnsToSelect);
                                     }
-                                    return `${relationObject.tableName}.${fieldName}`;
-                                });
-
-                                // Select the columns
-                                if (columnsToSelect.length) {
-                                    qb.columns(columnsToSelect);
                                 }
                             }
                         });

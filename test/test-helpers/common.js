@@ -400,6 +400,27 @@ export default function (repository, dbClient) {
                     });
             });
 
+            it('should return all fields when adding where clause to included query', (done) => {
+
+                repository.Models.PersonModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: [{
+                            pet(qb) {
+
+                                qb.where('name', 'Big Bird');
+                            }
+                        }]
+                    }, false)
+                    .then((person) => {
+
+                        expect(person.get('firstName')).to.equal('Barney');
+                        expect(person.related('pet').get('name')).to.equal('Big Bird');
+                        expect(person.related('pet').get('style')).to.not.be.undefined;
+                        done();
+                    });
+            });
+
             it('should only return the specified field for the included relationship combined with fields parameter', (done) => {
 
                 repository.Models.PersonModel
