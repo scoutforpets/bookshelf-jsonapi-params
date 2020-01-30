@@ -552,6 +552,54 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                     done();
                 });
         });
+
+    });
+
+    describe('passing in "or" filtering', () => {
+        it('should return results for "or" filters combination', (done) => {
+            repository.Models.PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        or: [
+                            {type: 'monster'},
+                            {type: 't-rex'},
+                        ]
+                    },
+                    sort: ['id']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('firstName')).to.equal('Barney');
+                    expect(result.models[1].get('firstName')).to.equal('Cookie Monster');
+                    done();
+                });
+        });
+
+        it('should return results for "or" filters for nested objects', (done) => {
+            repository.Models.PersonModel
+                .forge()
+                .fetchJsonApi({
+                    include: ['pet.toy'],
+                    filter: {
+                        or: [
+                            {
+                                like: {
+                                    'pet.toy.type': 'skat'
+                                }
+                            },
+                            {type: 'monster'},
+                        ]
+                    },
+                    sort: ['id']
+                })
+                .then((result) => {
+                    expect(result.models[0].related('pet').related('toy').get('type')).to.equal('skate');
+                    expect(result.models[1].get('type')).to.equal('monster');
+                    done();
+                });
+        });
     });
 
     after((done) => {

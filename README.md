@@ -86,6 +86,7 @@ The first parameter `options`, is passed in as an object that can have the follo
 {
     filter: {
         // Available filter objects
+        or: <filter>[]
         gt: {},
         gte: {},
         lt: {},
@@ -105,6 +106,21 @@ The first parameter `options`, is passed in as an object that can have the follo
 
 #### filter
 Filter is passed in as an object and filters a result set based specific field. Example: `/pets?filter[name]=max` would only return pets named max. Keywords can be added to filters to give more control over the results. Example: `/pets?filterType[like][pet]=ax` would only return pets that have "ax" in their name. The supported types are "like", "not", "lt", "lte", "gt", and "gte". Both "like" and "not" support multiple values by comma separation. Also, if your data has a string with a comma, you can filter for that comma by escaping the character with two backslashes. NOTE: This is not supported by JSON API spec.
+
+You can combine multiple filter by passing "or" filter key with array of filter objects. For example:
+```
+    filter: {
+        or: [
+            {
+                like: {
+                    'pet.toy.type': 'skat'
+                }
+            },
+            {type: 'monster'},
+        ]
+    },
+```
+will return all objects with "type" equal to "monster" or "type" property of relation pet.toy similar to "skat". 
 
 #### fields
 Fields is passed in as an object and selects desired columns from your base table and also relationships.
