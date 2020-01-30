@@ -266,6 +266,26 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 });
         });
 
+        it('should return results for array of strings json equality filter', (done) => {
+
+            repository.Models.PetModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        'style:looks.color': ['brown', 'yellow']
+                    },
+                    sort: ['id']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('name')).to.equal('Big Bird');
+                    expect(result.models[1].get('name')).to.equal('Patches');
+                    expect(result.models[2].get('name')).to.equal('Grover');
+                    done();
+                });
+        });
+
         it('should return results for json less than filter on integer', (done) => {
 
             repository.Models.PetModel

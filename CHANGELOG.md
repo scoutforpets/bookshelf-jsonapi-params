@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.4.6 (January 30, 2019)
+- Added support for passing in an array for filtering (previous support was only comma separated string)
+
 ### 1.4.5 (January 27, 2020)
 - Fixed issue where including a relationship with a query build that did not have a select clause, did not select `*`, but intead only the required id columns
 

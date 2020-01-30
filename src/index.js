@@ -115,7 +115,7 @@ export default (Bookshelf, options = {}) => {
                 _forEach(filterValues, (value, key) => {
 
                     // If the filter is not an equality filter
-                    if (_isObjectLike(value)){
+                    if (_isObjectLike(value) && !_isArray(value)){
                         if (!_isEmpty(value)){
                             _forEach(value, (typeValue, typeKey) => {
 
@@ -379,7 +379,7 @@ export default (Bookshelf, options = {}) => {
                     _forEach(filterValues, (value, key) => {
 
                         // If the value is a filter type
-                        if (_isObjectLike(value)){
+                        if (_isObjectLike(value) && !_isArray(value)){
                             // Format column names of filter types
                             const filterTypeValues = value;
 
@@ -393,13 +393,18 @@ export default (Bookshelf, options = {}) => {
                                     column = internals.formatRelation(internals.formatColumnNames([column])[0]);
 
                                     // Determine if there are multiple filters to be applied
-                                    let valueArray = split(String(typeValue), { keepQuotes: true, sep: ',' });
+                                    let valueArray = typeValue;
+                                    if (!_isArray(valueArray)) {
+                                        valueArray = split(String(typeValue), { keepQuotes: true, sep: ',' });
+                                    }
 
                                     if (jsonColumn) {
                                         // Pass in the an equality filter for the same column name as last parameter for OR filtering with `like` and `equals`
                                         let extraEqualityFilter = filterValues[typeKey];
                                         if (extraEqualityFilter) {
-                                            extraEqualityFilter = split(String(extraEqualityFilter), { keepQuotes: true, sep: ',' });
+                                            if (!_isArray(extraEqualityFilter)) {
+                                                extraEqualityFilter = split(String(extraEqualityFilter), { keepQuotes: true, sep: ',' });
+                                            }
                                         }
                                         jsonFields.buildFilterWithType(qb, Bookshelf.knex, key, valueArray, column, jsonColumn, dataType, extraEqualityFilter);
                                     }
