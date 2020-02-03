@@ -556,14 +556,16 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
     });
 
     describe('passing in "or" filtering', () => {
+        
         it('should return results for "or" filters combination', (done) => {
+            
             repository.Models.PersonModel
                 .forge()
                 .fetchJsonApi({
                     filter: {
                         or: [
-                            {type: 'monster'},
-                            {type: 't-rex'},
+                            { type: 'monster' },
+                            { type: 't-rex' }
                         ]
                     },
                     sort: ['id']
@@ -578,6 +580,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
         });
 
         it('should return results for "or" filters for nested objects', (done) => {
+            
             repository.Models.PersonModel
                 .forge()
                 .fetchJsonApi({
@@ -589,17 +592,97 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                                     'pet.toy.type': 'skat'
                                 }
                             },
-                            {type: 'monster'},
+                            { type: 'monster' }
                         ]
                     },
                     sort: ['id']
                 })
                 .then((result) => {
+                    
                     expect(result.models[0].related('pet').related('toy').get('type')).to.equal('skate');
                     expect(result.models[1].get('type')).to.equal('monster');
                     done();
                 });
         });
+
+        it('should return results for "or" filters combined with equality filter', (done) => {
+
+            repository.Models.PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        or: [
+                            { lt: { age: 15 }, gt: { age: 6 } },
+                            { gte: { age: 50 } }
+                        ],
+                        type: 't-rex,monster',
+                        gender: 'm'
+                    },
+                    sort: ['id']
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('firstName')).to.equal('Barney');
+                    expect(result.models[1].get('firstName')).to.equal('Cookie Monster');
+                    done();
+                });
+        });
+
+        it('should return results for "or" filters combined with filter objects', (done) => {
+
+            repository.Models.PersonModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        or: [
+                            { like: { firstName: 'abyr' }},
+                            { firstName: 'Cookie Monster,Boo' },
+                        ],
+                        lt: { age: 30 },
+                        not: { age: 70 }
+                    },
+                    sort: ['id']
+                })
+                .then((result) => {
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('firstName')).to.equal('Boo');
+                    done();
+                });
+        });
+
+        it('should return results for json filters combined with "or"', (done) => {
+
+            repository.Models.PetModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                      or: [
+                            {
+                                like: {
+                                    'style:looks.color': 'yel'
+                                },
+                                'style:looks.tail': 'small'
+                            },
+                            {
+                                lte: {
+                                    'style:age:numeric': 8
+                                },
+                                'style:looks.height': 'short'
+                            }
+                        ]   
+                    },
+                    sort: ['id']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('name')).to.equal('Big Bird');
+                    expect(result.models[1].get('name')).to.equal('Patches');
+                    expect(result.models[2].get('name')).to.equal('Benny "The Terror" Terrier');
+                    done();
+                });
+        });
+        
     });
 
     after((done) => {
