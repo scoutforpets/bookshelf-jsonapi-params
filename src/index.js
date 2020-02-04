@@ -100,11 +100,12 @@ export default (Bookshelf, options = {}) => {
         internals.model =
             this.constructor.forge().query((qb) => _assign(qb, this.query().clone()));
         /**
-         * Build a query for single filtering dependency object 
+         * Build a query for single filtering dependency object
          * @param   value {object}
          * @param   relationHash {object}
          */
         internals.buildObjectLikeFilterValue = (value, relationHash) => {
+
             if (!_isEmpty(value)){
                 _forEach(value, (_, typeKey) => {
                     // Add relations to the relationHash
@@ -118,13 +119,20 @@ export default (Bookshelf, options = {}) => {
          * @param   relationHash {object}
          */
         internals.buildArrayLikeFilterValue = (filterList, relationHash) => {
+
             if (!_isEmpty(filterList)) {
-                _forEach(filterList, filter => {
-                    if (_isPlainObject(filter)) {
-                        _forEach(filter, (typeValue, typeKey) => {
+                _forEach(filterList, (value) => {
+
+                    if (_isPlainObject(value)) {
+
+                        _forEach(value, (typeValue, typeKey) => {
+
                             if (_isPlainObject(typeValue)) {
+
                                 internals.buildObjectLikeFilterValue(typeValue, relationHash);
-                            } else {
+                            }
+                            else {
+
                                 internals.buildDependenciesHelper(typeKey, relationHash);
                             }
                         });
@@ -146,14 +154,13 @@ export default (Bookshelf, options = {}) => {
 
                 // Loop through each filter value
                 _forEach(filterValues, (value, key) => {
-
-                    // If the filter is object
-                    if (_isPlainObject(value)){
-                        internals.buildObjectLikeFilterValue(value, relationHash);
-                    }
-                    // If the filter is Array (or case)
-                    else if (_isArray(value)) {
+                    // If the filter is "OR" filter fragments array
+                    if (key === 'or') {
                         internals.buildArrayLikeFilterValue(value, relationHash);
+                    }
+                    // If the filter is not an equality filter
+                    if (_isObjectLike(value) && !_isArray(value)){
+                        internals.buildObjectLikeFilterValue(value, relationHash);
                     }
                     // If the filter is an equality filter
                     else {
@@ -220,23 +227,23 @@ export default (Bookshelf, options = {}) => {
                 const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
                 if (relatedData.type === 'hasOne' || relatedData.type === 'hasMany'){
                     qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
-                                     `${parentKey}.${relatedData.parentIdAttribute}`,
-                                     `${relationKey}.${foreignKey}`);
+                        `${parentKey}.${relatedData.parentIdAttribute}`,
+                        `${relationKey}.${foreignKey}`);
                 }
                 else if (relatedData.type === 'belongsTo'){
                     if (relatedData.throughTableName){
                         const throughTableAlias = `${relationKey}_${relatedData.throughTableName}_pivot`;
                         qb.leftOuterJoin(`${relatedData.throughTableName} as ${throughTableAlias}`,
-                                        `${parentKey}.${relatedData.parentIdAttribute}`,
-                                        `${throughTableAlias}.${relatedData.throughIdAttribute}`);
+                            `${parentKey}.${relatedData.parentIdAttribute}`,
+                            `${throughTableAlias}.${relatedData.throughIdAttribute}`);
                         qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
-                                        `${throughTableAlias}.${foreignKey}`,
-                                        `${relationKey}.${relatedData.targetIdAttribute}`);
+                            `${throughTableAlias}.${foreignKey}`,
+                            `${relationKey}.${relatedData.targetIdAttribute}`);
                     }
                     else {
                         qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
-                                        `${parentKey}.${foreignKey}`,
-                                        `${relationKey}.${relatedData.targetIdAttribute}`);
+                            `${parentKey}.${foreignKey}`,
+                            `${relationKey}.${relatedData.targetIdAttribute}`);
                     }
                 }
                 else if (relatedData.type === 'belongsToMany'){
@@ -244,11 +251,11 @@ export default (Bookshelf, options = {}) => {
                     const joinTableName = relatedData.joinTableName ? relatedData.joinTableName : relatedData.throughTableName;
 
                     qb.leftOuterJoin(`${joinTableName} as ${relationKey}_${joinTableName}`,
-                                        `${parentKey}.${relatedData.parentIdAttribute}`,
-                                        `${relationKey}_${joinTableName}.${foreignKey}`);
+                        `${parentKey}.${relatedData.parentIdAttribute}`,
+                        `${relationKey}_${joinTableName}.${foreignKey}`);
                     qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
-                                        `${relationKey}_${joinTableName}.${otherKey}`,
-                                        `${relationKey}.${relatedData.targetIdAttribute}`);
+                        `${relationKey}_${joinTableName}.${otherKey}`,
+                        `${relationKey}.${relatedData.targetIdAttribute}`);
                 }
                 else if (_includes(relatedData.type, 'morph')){
                     // Get the morph type and id
@@ -412,128 +419,125 @@ export default (Bookshelf, options = {}) => {
          * Takes in filterValues (fragment of filter configuration) and returns function to create filter
          * @param  filterValues {object|array} fragment of filter params
          */
-        internals.applyFilterFragment = filterValues => qb => {
+        internals.applyFilterFragment = (filterValues) => {
 
-            _forEach(filterValues, (value, key) => {
+            return (qb) => {
 
-                // If the value is a filter type
-                if (_isPlainObject(value)){
-                    // Format column names of filter types
-                    const filterTypeValues = value;
+                _forEach(filterValues, (value, key) => {
+                    // If the value is a filter type
+                    if (_isObjectLike(value) && !_isArray(value)) {
+                        // Format column names of filter types
+                        const filterTypeValues = value;
+                        // Check if filter type is valid
+                        if (_includes(filterTypes, key)) {
+                            // Loop through each value for the valid filter type
+                            _forEach(filterTypeValues, (typeValue, typeKey) => {
 
-                    // Check if filter type is valid
-                    if (_includes(filterTypes, key)){
-                        // Loop through each value for the valid filter type
-                        _forEach(filterTypeValues, (typeValue, typeKey) => {
-
-                            let [column, jsonColumn, dataType] = typeKey.split(':');
-                            // Remove all but the last table name, need to get number of dots
-                            column = internals.formatRelation(internals.formatColumnNames([column])[0]);
-
-                            // Determine if there are multiple filters to be applied
-                            let valueArray = split(String(typeValue), { keepQuotes: true, sep: ',' });
-
-                            if (jsonColumn) {
-                                // Pass in the an equality filter for the same column name as last parameter for OR filtering with `like` and `equals`
-                                let extraEqualityFilter = filterValues[typeKey];
-                                if (extraEqualityFilter) {
-                                    extraEqualityFilter = split(String(extraEqualityFilter), { keepQuotes: true, sep: ',' });
+                                let [column, jsonColumn, dataType] = typeKey.split(':');
+                                // Remove all but the last table name, need to get number of dots
+                                column = internals.formatRelation(internals.formatColumnNames([column])[0]);
+                                let valueArray = typeValue;
+                                if (!_isArray(valueArray)) {
+                                    valueArray = split(String(typeValue), { keepQuotes: true, sep: ',' });
                                 }
-                                jsonFields.buildFilterWithType(qb, Bookshelf.knex, key, valueArray, column, jsonColumn, dataType, extraEqualityFilter);
-                            }
-                            else {
-                                // Attach different query for each type
-                                if (key === 'like'){
-                                    qb.where((qbWhere) => {
-
-                                        let where = 'where';
-                                        let textType = 'text';
-                                        if (internals.client === 'mysql' || internals.client === 'mssql'){
-                                            textType = 'char';
+                                if (jsonColumn) {
+                                    // Pass in the an equality filter for the same column name as last parameter for OR filtering with `like` and `equals`
+                                    let extraEqualityFilter = filterValues[typeKey];
+                                    if (extraEqualityFilter) {
+                                        if (!_isArray(extraEqualityFilter)) {
+                                            extraEqualityFilter = split(String(extraEqualityFilter), { keepQuotes: true, sep: ',' });
                                         }
-                                        _forEach(valueArray, (val) => {
+                                    }
+                                    jsonFields.buildFilterWithType(qb, Bookshelf.knex, key, valueArray, column, jsonColumn, dataType, extraEqualityFilter);
+                                }
+                                else {
+                                    // Attach different query for each type
+                                    if (key === 'like') {
+                                        qb.where((qbWhere) => {
 
-                                            let likeQuery = `LOWER(CAST(:column: AS ${textType})) like LOWER(:value)`;
-                                            if (internals.client === 'pg') {
-                                                likeQuery = `CAST(:column: AS ${textType}) ilike :value`;
+                                            let where = 'where';
+                                            let textType = 'text';
+                                            if (internals.client === 'mysql' || internals.client === 'mssql') {
+                                                textType = 'char';
                                             }
-                                            qbWhere[where](
-                                                Bookshelf.knex.raw(likeQuery, {
+                                            _forEach(valueArray, (val) => {
+
+                                                let likeQuery = `LOWER(CAST(:column: AS ${textType})) like LOWER(:value)`;
+                                                if (internals.client === 'pg') {
+                                                    likeQuery = `CAST(:column: AS ${textType}) ilike :value`;
+                                                }
+                                                qbWhere[where](Bookshelf.knex.raw(likeQuery, {
                                                     value: `%${val}%`,
                                                     column
-                                                })
-                                            );
-
-                                            // Change to orWhere after the first where
-                                            if (where === 'where'){
-                                                where = 'orWhere';
+                                                }));
+                                                // Change to orWhere after the first where
+                                                if (where === 'where') {
+                                                    where = 'orWhere';
+                                                }
+                                            });
+                                            // If the key is in the top level filter, filter on orWhereIn
+                                            if (_hasIn(filterValues, typeKey)) {
+                                                // Determine if there are multiple filters to be applied
+                                                let equalityValue = filterValues[typeKey];
+                                                if (!_isArray(equalityValue)) {
+                                                    equalityValue = split(String(equalityValue), { keepQuotes: true, sep: ',' });
+                                                }
+                                                internals.equalityFilter(qbWhere, column, equalityValue, 'orWhere');
                                             }
                                         });
-
-                                        // If the key is in the top level filter, filter on orWhereIn
-                                        if (_hasIn(filterValues, typeKey)){
-                                            // Determine if there are multiple filters to be applied
-                                            let equalityValue = filterValues[typeKey];
-                                            if (!_isArray(equalityValue)){
-                                                equalityValue = split(String(equalityValue), { keepQuotes: true, sep: ',' });
-                                            }
-
-                                            internals.equalityFilter(qbWhere, column, equalityValue, 'orWhere');
+                                    }
+                                    else if (key === 'not') {
+                                        const hasNull = valueArray.length !== _pull(valueArray, null, 'null').length;
+                                        if (hasNull) {
+                                            qb.whereNotNull(column);
                                         }
-                                    });
-                                }
-                                else if (key === 'not'){
-                                    const hasNull = valueArray.length !== _pull(valueArray, null, 'null').length;
-                                    if (hasNull) {
-                                        qb.whereNotNull(column);
+                                        if (!_isEmpty(valueArray)) {
+                                            qb.whereNotIn(column, valueArray);
+                                        }
                                     }
-                                    if (!_isEmpty(valueArray)){
-                                        qb.whereNotIn(column, valueArray);
+                                    else if (key === 'lt') {
+                                        qb.where(column, '<', typeValue);
+                                    }
+                                    else if (key === 'gt') {
+                                        qb.where(column, '>', typeValue);
+                                    }
+                                    else if (key === 'lte') {
+                                        qb.where(column, '<=', typeValue);
+                                    }
+                                    else if (key === 'gte') {
+                                        qb.where(column, '>=', typeValue);
                                     }
                                 }
-                                else if (key === 'lt'){
-                                    qb.where(column, '<', typeValue);
-                                }
-                                else if (key === 'gt'){
-                                    qb.where(column, '>', typeValue);
-                                }
-                                else if (key === 'lte'){
-                                    qb.where(column, '<=', typeValue);
-                                }
-                                else if (key === 'gte'){
-                                    qb.where(column, '>=', typeValue);
-                                }
-                            }
+                            });
+                        }
+                    }
+                    // If key is or and value is array
+                    else if (_isArray(value) && key === 'or') {
+                        _forEach(value, (fragment) => {
+
+                            qb.orWhere(internals.applyFilterFragment(fragment));
                         });
                     }
-                }
-                // If key is or and value is array
-                else if (_isArray(value) && key === 'or') {
-                    _forEach(value, (fragment) => {
-                        qb.orWhere(internals.applyFilterFragment(fragment));
-                    });
-                }
-                // If the value is an equality filter
-                else {
-                    // If the key is in the like filter, ignore the filter
-                    if (!_hasIn(filterValues.like, key)){
-                        let [column, jsonColumn, dataType] = key.split(':');
-                        // Remove all but the last table name, need to get number of dots
-                        column = internals.formatRelation(internals.formatColumnNames([column])[0]);
-
-                        if (!_isArray(value)){
-                            value = split(String(value), { keepQuotes: true, sep: ',' });
-                        }
-
-                        if (jsonColumn) {
-                            jsonFields.buildFilterWithType(qb, Bookshelf.knex, 'equal', value, column, jsonColumn, dataType);
-                        }
-                        else {
-                            internals.equalityFilter(qb, column, value);
+                    // If the value is an equality filter
+                    else {
+                        // If the key is in the like filter, ignore the filter
+                        if (!_hasIn(filterValues.like, key)) {
+                            let [column, jsonColumn, dataType] = key.split(':');
+                            // Remove all but the last table name, need to get number of dots
+                            column = internals.formatRelation(internals.formatColumnNames([column])[0]);
+                            if (!_isArray(value)) {
+                                value = split(String(value), { keepQuotes: true, sep: ',' });
+                            }
+                            if (jsonColumn) {
+                                jsonFields.buildFilterWithType(qb, Bookshelf.knex, 'equal', value, column, jsonColumn, dataType);
+                            }
+                            else {
+                                internals.equalityFilter(qb, column, value);
+                            }
                         }
                     }
-                }
-            });
+                });
+            };
         };
         /**
          * Takes in value, query builder, and column name for creating an equality filter
@@ -614,13 +618,7 @@ export default (Bookshelf, options = {}) => {
 
                         let relationGetter = `relations.${relation.split('.').join('.relations.')}`;
                         let relationObject = _get(includesMap, relationGetter);
-                        let requiredRelationColumns = _get(relationObject, 'requiredColumns');
 
-                        // Combine the required columns with the desired columns
-                        if (requiredRelationColumns && requiredRelationColumns.length) {
-                            fieldNames.push(...requiredRelationColumns);
-                            fieldNames = _uniq(fieldNames);
-                        }
 
                         relations.push({
                             [relation]: (qb) => {
@@ -630,24 +628,29 @@ export default (Bookshelf, options = {}) => {
                                 }
 
                                 // Fetch existing columns from query builder and combine them with fieldNames
-                                let columnsToSelect = _union(..._map(_filter(qb._statements, { grouping: 'columns' }), 'value'), fieldNames);
+                                let selectFromQB = _filter(qb._statements, { grouping: 'columns' });
+                                if (selectFromQB.length || fieldNames.length) {
+                                    // Combine the required columns with the desired columns
+                                    let requiredRelationColumns = _get(relationObject, 'requiredColumns');
+                                    let columnsToSelect = _uniq(_union(..._map(selectFromQB, 'value'), fieldNames, requiredRelationColumns));
 
-                                // Clear existing columns
-                                qb.clearSelect();
+                                    // Clear existing columns
+                                    qb.clearSelect();
 
-                                // Put the table name in front of each column in cases where there are joins in the subquery
-                                columnsToSelect = _map(columnsToSelect, (fieldName) =>  {
+                                    // Put the table name in front of each column in cases where there are joins in the subquery
+                                    columnsToSelect = _map(columnsToSelect, (fieldName) =>  {
 
-                                    // If there is already an existing table name in the query, do not replace it
-                                    if (_includes(fieldName, '.')) {
-                                        return fieldName;
+                                        // If there is already an existing table name in the query, do not replace it
+                                        if (_includes(fieldName, '.')) {
+                                            return fieldName;
+                                        }
+                                        return `${relationObject.tableName}.${fieldName}`;
+                                    });
+
+                                    // Select the columns
+                                    if (columnsToSelect.length) {
+                                        qb.columns(columnsToSelect);
                                     }
-                                    return `${relationObject.tableName}.${fieldName}`;
-                                });
-
-                                // Select the columns
-                                if (columnsToSelect.length) {
-                                    qb.columns(columnsToSelect);
                                 }
                             }
                         });
@@ -743,9 +746,10 @@ export default (Bookshelf, options = {}) => {
                 }
                 else if (relatedData.type === 'belongsTo'){
                     if (relatedData.throughTableName) {
+                        const throughForeignKey = relatedData.throughForeignKey ? relatedData.throughForeignKey : `${inflection.singularize(relatedData.throughTableName)}_${relatedData.throughIdAttribute}`;
                         // Belongs To Through
-                        // Parent: Use throughForeignKey
-                        parent.requiredColumns.push(relatedData.throughForeignKey);
+                        // Parent: Use throughForeignKey or `${throughTableName}_${throughIdAttribute}`
+                        parent.requiredColumns.push(throughForeignKey);
                         // Relation: is targetIdAttribute, set by default
 
                     }

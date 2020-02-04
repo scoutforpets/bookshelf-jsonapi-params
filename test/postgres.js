@@ -266,6 +266,26 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 });
         });
 
+        it('should return results for array of strings json equality filter', (done) => {
+
+            repository.Models.PetModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        'style:looks.color': ['brown', 'yellow']
+                    },
+                    sort: ['id']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(3);
+                    expect(result.models[0].get('name')).to.equal('Big Bird');
+                    expect(result.models[1].get('name')).to.equal('Patches');
+                    expect(result.models[2].get('name')).to.equal('Grover');
+                    done();
+                });
+        });
+
         it('should return results for json less than filter on integer', (done) => {
 
             repository.Models.PetModel
@@ -556,9 +576,9 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
     });
 
     describe('passing in "or" filtering', () => {
-        
+
         it('should return results for "or" filters combination', (done) => {
-            
+
             repository.Models.PersonModel
                 .forge()
                 .fetchJsonApi({
@@ -580,7 +600,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
         });
 
         it('should return results for "or" filters for nested objects', (done) => {
-            
+
             repository.Models.PersonModel
                 .forge()
                 .fetchJsonApi({
@@ -598,7 +618,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                     sort: ['id']
                 })
                 .then((result) => {
-                    
+
                     expect(result.models[0].related('pet').related('toy').get('type')).to.equal('skate');
                     expect(result.models[1].get('type')).to.equal('monster');
                     done();
@@ -621,6 +641,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                     sort: ['id']
                 })
                 .then((result) => {
+
                     expect(result.models).to.have.length(2);
                     expect(result.models[0].get('firstName')).to.equal('Barney');
                     expect(result.models[1].get('firstName')).to.equal('Cookie Monster');
@@ -635,8 +656,8 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .fetchJsonApi({
                     filter: {
                         or: [
-                            { like: { firstName: 'abyr' }},
-                            { firstName: 'Cookie Monster,Boo' },
+                            { like: { firstName: 'abyr' } },
+                            { firstName: 'Cookie Monster,Boo' }
                         ],
                         lt: { age: 30 },
                         not: { age: 70 }
@@ -644,6 +665,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                     sort: ['id']
                 })
                 .then((result) => {
+
                     expect(result.models).to.have.length(1);
                     expect(result.models[0].get('firstName')).to.equal('Boo');
                     done();
@@ -656,7 +678,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .forge()
                 .fetchJsonApi({
                     filter: {
-                      or: [
+                        or: [
                             {
                                 like: {
                                     'style:looks.color': 'yel'
@@ -669,7 +691,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                                 },
                                 'style:looks.height': 'short'
                             }
-                        ]   
+                        ]
                     },
                     sort: ['id']
                 })
@@ -682,7 +704,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                     done();
                 });
         });
-        
+
     });
 
     after((done) => {
@@ -693,6 +715,6 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
             repository.knex.schema.dropTableIfExists('pet'),
             repository.knex.schema.dropTableIfExists('toy')
         )
-        .then(() => done());
+            .then(() => done());
     });
 });

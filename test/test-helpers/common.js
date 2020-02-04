@@ -400,6 +400,27 @@ export default function (repository, dbClient) {
                     });
             });
 
+            it('should return all fields when adding where clause to included query', (done) => {
+
+                repository.Models.PersonModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: [{
+                            pet(qb) {
+
+                                qb.where('name', 'Big Bird');
+                            }
+                        }]
+                    }, false)
+                    .then((person) => {
+
+                        expect(person.get('firstName')).to.equal('Barney');
+                        expect(person.related('pet').get('name')).to.equal('Big Bird');
+                        expect(person.related('pet').get('style')).to.not.be.undefined;
+                        done();
+                    });
+            });
+
             it('should only return the specified field for the included relationship combined with fields parameter', (done) => {
 
                 repository.Models.PersonModel
@@ -658,13 +679,29 @@ export default function (repository, dbClient) {
 
         describe('passing a `filters` parameter with multiple filters', () => {
 
-            it('should return a single record that matches both filters', (done) => {
+            it('should return a single record that matches both filters when passing in a comma separated string', (done) => {
 
                 repository.Models.PersonModel
                     .forge()
                     .fetchJsonApi({
                         filter: {
                             type: 't-rex,triceratops'
+                        }
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(2);
+                        done();
+                    });
+            });
+
+            it('should return a single record that matches both filters when passing in an array', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            type: ['t-rex', 'triceratops']
                         }
                     })
                     .then((result) => {
@@ -838,7 +875,7 @@ export default function (repository, dbClient) {
 
         describe('passing a `filter[not]` parameter with multiple filters', () => {
 
-            it('should return all records that do not match filter[not]', (done) => {
+            it('should return all records that do not match filter[not] as comma separated string', (done) => {
 
                 repository.Models.PersonModel
                     .forge()
@@ -846,6 +883,25 @@ export default function (repository, dbClient) {
                         filter: {
                             not: {
                                 first_name: 'Barney,Baby Bop,Boo,Elmo'
+                            }
+                        }
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(1);
+                        expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                        done();
+                    });
+            });
+
+            it('should return all records that do not match filter[not] as array of strings', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            not: {
+                                first_name: ['Barney', 'Baby Bop', 'Boo', 'Elmo']
                             }
                         }
                     })
