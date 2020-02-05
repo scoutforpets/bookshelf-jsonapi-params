@@ -104,7 +104,7 @@ export default (Bookshelf, options = {}) => {
          * @param   value {object}
          * @param   relationHash {object}
          */
-        internals.buildObjectLikeFilterValue = (value, relationHash) => {
+        internals.buildObjectLikeFilterDependencies = (value, relationHash) => {
 
             if (!_isEmpty(value)){
                 _forEach(value, (_, typeKey) => {
@@ -118,7 +118,7 @@ export default (Bookshelf, options = {}) => {
          * @param   filterList {array}
          * @param   relationHash {object}
          */
-        internals.buildArrayLikeFilterValue = (filterList, relationHash) => {
+        internals.buildOrFilterDependencies = (filterList, relationHash) => {
 
             if (!_isEmpty(filterList)) {
                 _forEach(filterList, (value) => {
@@ -129,7 +129,7 @@ export default (Bookshelf, options = {}) => {
 
                             if (_isPlainObject(typeValue)) {
 
-                                internals.buildObjectLikeFilterValue(typeValue, relationHash);
+                                internals.buildObjectLikeFilterDependencies(typeValue, relationHash);
                             }
                             else {
 
@@ -156,11 +156,11 @@ export default (Bookshelf, options = {}) => {
                 _forEach(filterValues, (value, key) => {
                     // If the filter is "OR" filter fragments array
                     if (key === 'or') {
-                        internals.buildArrayLikeFilterValue(value, relationHash);
+                        internals.buildOrFilterDependencies(value, relationHash);
                     }
                     // If the filter is not an equality filter
                     if (_isObjectLike(value) && !_isArray(value)){
-                        internals.buildObjectLikeFilterValue(value, relationHash);
+                        internals.buildObjectLikeFilterDependencies(value, relationHash);
                     }
                     // If the filter is an equality filter
                     else {
