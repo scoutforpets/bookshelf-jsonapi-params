@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.5.0 (February 5, 2020)
+- Added support for `or` filtering
+
 ### 1.4.6 (January 30, 2019)
 - Added support for passing in an array for filtering (previous support was only comma separated string)
 
