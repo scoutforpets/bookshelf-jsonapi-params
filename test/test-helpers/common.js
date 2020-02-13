@@ -126,8 +126,7 @@ export default function (repository, dbClient) {
                 repository.knex.schema.dropTableIfExists('person'),
                 repository.knex.schema.dropTableIfExists('pet'),
                 repository.knex.schema.dropTableIfExists('toy')
-            )
-            .then(() => {
+            ).then(() => {
 
                 return Promise.join(
                     repository.knex.schema.createTable('house', (table) => {
@@ -168,8 +167,7 @@ export default function (repository, dbClient) {
 
                     })
                 );
-            })
-            .then(() => {
+            }).then(() => {
 
                 return Promise.join(
                     repository.Models.HouseModel.forge().save({
@@ -311,8 +309,7 @@ export default function (repository, dbClient) {
                         pet_id: 2
                     })
                 );
-            })
-            .then(() => done());
+            }).then(() => done());
         });
 
         describe('passing no parameters', () => {
@@ -1093,6 +1090,102 @@ export default function (repository, dbClient) {
 
                         expect(result.models).to.have.length(1);
                         expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                        done();
+                    });
+            });
+        });
+
+        describe('passing in "or" filtering', () => {
+
+            it('should return results for "or" filters combination', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            or: [
+                                { type: 'monster' },
+                                { type: 't-rex' }
+                            ]
+                        },
+                        sort: ['id']
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(2);
+                        expect(result.models[0].get('firstName')).to.equal('Barney');
+                        expect(result.models[1].get('firstName')).to.equal('Cookie Monster');
+                        done();
+                    });
+            });
+
+            it('should return results for "or" filters for nested objects', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        include: ['pet.toy'],
+                        filter: {
+                            or: [
+                                {
+                                    like: {
+                                        'pet.toy.type': 'skat'
+                                    }
+                                },
+                                { type: 'monster' }
+                            ]
+                        },
+                        sort: ['id']
+                    })
+                    .then((result) => {
+
+                        expect(result.models[0].related('pet').related('toy').get('type')).to.equal('skate');
+                        expect(result.models[1].get('type')).to.equal('monster');
+                        done();
+                    });
+            });
+
+            it('should return results for "or" filters combined with equality filter', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            or: [
+                                { like: { type: 'rex' } },
+                                { firstName: 'Cookie Monster', type: 'monster' }
+                            ],
+                            age: 70
+                        },
+                        sort: ['id']
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(1);
+                        expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                        done();
+                    });
+            });
+
+            it('should return results for "or" filters combined with filter objects', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            or: [
+                                { like: { firstName: 'abyr' } },
+                                { firstName: 'Cookie Monster,Boo' }
+                            ],
+                            lt: { age: 30 },
+                            not: { age: 70 }
+                        },
+                        sort: ['id']
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(1);
+                        expect(result.models[0].get('firstName')).to.equal('Boo');
                         done();
                     });
             });
