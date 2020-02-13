@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.5.1 (February 13, 2020)
+- Fixed bug for `or` filtering. Filters that were intended for `and` was switched to `or` when an or filter was present
+
 ### 1.5.0 (February 5, 2020)
 - Added support for `or` filtering
 
