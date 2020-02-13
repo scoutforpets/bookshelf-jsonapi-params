@@ -1,6 +1,6 @@
 {
   "name": "bookshelf-jsonapi-params",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Automatically applies relations, filters, and more from the JSON API spec to your Bookshelf.js results",
   "main": "./dist/index.js",
   "options": {
