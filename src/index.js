@@ -513,9 +513,12 @@ export default (Bookshelf, options = {}) => {
                     }
                     // If key is or and value is array
                     else if (_isArray(value) && key === 'or') {
-                        _forEach(value, (fragment) => {
+                        qb.where((orStatements) => {
 
-                            qb.orWhere(internals.applyFilterFragment(fragment));
+                            _forEach(value, (fragment) => {
+
+                                orStatements.orWhere(internals.applyFilterFragment(fragment));
+                            });
                         });
                     }
                     // If the value is an equality filter
