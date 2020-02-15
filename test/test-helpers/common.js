@@ -1438,7 +1438,22 @@ export default function (repository, dbClient) {
             });
         });
 
+        it('should return the oldest house', (done) => {
 
+            repository.Models.HouseModel
+                .forge()
+                .fetchJsonApi({
+                    fields: {
+                        house: ['min(year_built)']
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(parseInt(result.models[0].get('min'))).to.equal(1957);
+                    done();
+                });
+        });
 
         describe('Sorting by multiple columns with a mix of camelCase values', () => {
 
