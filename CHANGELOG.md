@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.5.2 (April 28, 2020)
+- Allowed for bookshelf-page plugin from core in Bookshelf 1.* to be used, no longer overwriting the plugin.
+
 ### 1.5.1 (February 13, 2020)
 - Fixed bug for `or` filtering. Filters that were intended for `and` was switched to `or` when an or filter was present
 

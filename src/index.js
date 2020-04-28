@@ -59,8 +59,10 @@ import jsonFields from './json-fields';
  */
 export default (Bookshelf, options = {}) => {
 
-    // Load the pagination plugin
-    Bookshelf.plugin(Paginator);
+    // Load the pagination plugin if its not already there
+    if (!_get(Bookshelf, 'Model.fetchPage')) {
+        Bookshelf.plugin(Paginator);
+    }
 
     /**
      * Similar to {@link Model#fetch} and {@link Model#fetchAll}, but specifically
