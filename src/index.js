@@ -86,6 +86,10 @@ export default (Bookshelf, options = {}) => {
         const { include, fields, sort, page = {}, filter, group } = opts;
         const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte', 'or'];
 
+        // Do not add the global flag. The global flag will influence String.prototype.match and will
+        // return a list of matches instead of matching groups. Changing this will break existing code.
+        const aggregateFunctionRegex = /(count|sum|avg|max|min)\((.+)\)/; 
+
         // Get a reference to the field being used as the id
         internals.idAttribute = this.constructor.prototype.idAttribute ?
             this.constructor.prototype.idAttribute : 'id';
@@ -342,8 +346,7 @@ export default (Bookshelf, options = {}) => {
                         // Extract any aggregate function around the column name
                         let [column, jsonColumn, dataType] = value.split(':');
                         let aggregateFunction = null;
-                        const regex = new RegExp(/(count|sum|avg|max|min)\((.+)\)/g);
-                        const match = regex.exec(value);
+                        const match = aggregateFunctionRegex.exec(value);
 
                         if (match) {
                             aggregateFunction = match[1];
@@ -904,8 +907,17 @@ export default (Bookshelf, options = {}) => {
                 const lastIndex = columnComponents.length - 1;
                 const tableAttribute = columnComponents[lastIndex];
                 // this only gets hit for current model, not relationships
-                const formattedTableAttribute = _keys(this.format({ [tableAttribute]: undefined }))[0];
-                columnComponents[lastIndex] = formattedTableAttribute;
+                const isAggregateFunction = aggregateFunctionRegex.test(tableAttribute);
+
+                if (isAggregateFunction) {
+                    const [source, aggregateFunction, aggregateFunctionTableAttribute] = tableAttribute.match(aggregateFunctionRegex);
+                    const formattedTableAttribute = _keys(this.format({ [aggregateFunctionTableAttribute]: undefined }))[0];
+                    columnComponents[lastIndex] = `${aggregateFunction}(${formattedTableAttribute})`;
+                }
+                else {
+                    const formattedTableAttribute = _keys(this.format({ [tableAttribute]: undefined }))[0];
+                    columnComponents[lastIndex] = formattedTableAttribute;
+                }
 
                 return _filter([columnComponents.join('.'), jsonColumn, dataType]).join(':');
             });
