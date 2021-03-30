@@ -1,7 +1,10 @@
 # Changelog
 
-### 1.5.3 (March 30, 2021)
+### 1.5.4 (March 30, 2021)
 - Fixed bug for nesting `or` filtering with relationship filters. The joins for the relationships were not being added to the query.
+
+### 1.5.3 (July 15, 2020)
+- Bug fix for aggregate functions
 
 ### 1.5.2 (April 28, 2020)
 - Allowed for bookshelf-page plugin from core in Bookshelf 1.* to be used, no longer overwriting the plugin.
