@@ -1145,6 +1145,38 @@ export default function (repository, dbClient) {
                     });
             });
 
+
+            it('should return results for nested "or" filters for nested objects', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        include: ['pet.toy'],
+                        filter: {
+                            or: [
+                                {
+                                    or: [
+                                        {
+                                            like: {
+                                                'pet.toy.type': 'skat'
+                                            }
+                                        },
+                                        { type: 'monster' }
+                                    ]
+                                }
+                            ]
+                        },
+                        sort: ['id']
+                    })
+                    .then((result) => {
+
+                        expect(result.models[0].related('pet').related('toy').get('type')).to.equal('skate');
+                        expect(result.models[1].get('type')).to.equal('monster');
+                        done();
+                    });
+            });
+
+
             it('should return results for "or" filters combined with equality filter', (done) => {
 
                 repository.Models.PersonModel

@@ -88,7 +88,7 @@ export default (Bookshelf, options = {}) => {
 
         // Do not add the global flag. The global flag will influence String.prototype.match and will
         // return a list of matches instead of matching groups. Changing this will break existing code.
-        const aggregateFunctionRegex = /(count|sum|avg|max|min)\((.+)\)/; 
+        const aggregateFunctionRegex = /(count|sum|avg|max|min)\((.+)\)/;
 
         // Get a reference to the field being used as the id
         internals.idAttribute = this.constructor.prototype.idAttribute ?
@@ -130,22 +130,31 @@ export default (Bookshelf, options = {}) => {
                 _forEach(filterList, (value) => {
 
                     if (_isPlainObject(value)) {
-
-                        _forEach(value, (typeValue, typeKey) => {
-
-                            if (_isPlainObject(typeValue)) {
-
-                                internals.buildObjectLikeFilterDependencies(typeValue, relationHash);
-                            }
-                            else {
-
-                                internals.buildDependenciesHelper(typeKey, relationHash);
-                            }
-                        });
+                        internals.buildDependenciesLoopHelper(value, relationHash);
                     }
                 });
             }
         };
+
+        internals.buildDependenciesLoopHelper = (filterValues, relationHash) => {
+
+            // Loop through each filter value
+            _forEach(filterValues, (value, key) => {
+                // If the filter is "OR" filter fragments array
+                if (key === 'or') {
+                    internals.buildOrFilterDependencies(value, relationHash);
+                }
+                // If the filter is not an equality filter
+                if (_isObjectLike(value) && !_isArray(value)){
+                    internals.buildObjectLikeFilterDependencies(value, relationHash);
+                }
+                // If the filter is an equality filter
+                else {
+                    internals.buildDependenciesHelper(key, relationHash);
+                }
+            });
+        };
+
         /**
          * Build a query for relational dependencies of filtering, grouping and sorting
          * @param   filterValues {object}
@@ -157,22 +166,7 @@ export default (Bookshelf, options = {}) => {
             const relationHash = {};
             // Find relations in filterValues
             if (_isObjectLike(filterValues) && !_isEmpty(filterValues)){
-
-                // Loop through each filter value
-                _forEach(filterValues, (value, key) => {
-                    // If the filter is "OR" filter fragments array
-                    if (key === 'or') {
-                        internals.buildOrFilterDependencies(value, relationHash);
-                    }
-                    // If the filter is not an equality filter
-                    if (_isObjectLike(value) && !_isArray(value)){
-                        internals.buildObjectLikeFilterDependencies(value, relationHash);
-                    }
-                    // If the filter is an equality filter
-                    else {
-                        internals.buildDependenciesHelper(key, relationHash);
-                    }
-                });
+                internals.buildDependenciesLoopHelper(filterValues, relationHash);
             }
 
             // Find relations in sortValues
