@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.5.5 (May 13, 2021)
+- Allowing a string to be given for group, automatically converting it to an array of strings
+
 ### 1.5.4 (March 30, 2021)
 - Fixed bug for nesting `or` filtering with relationship filters. The joins for the relationships were not being added to the query.
 

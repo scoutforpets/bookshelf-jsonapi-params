@@ -1368,6 +1368,28 @@ export default function (repository, dbClient) {
                     });
             });
 
+            it('should return the average age per gender when group is a string', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        fields: {
+                            person: ['avg(age)','gender']
+                        },
+                        group: 'gender',
+                        sort: ['gender']
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(2);
+                        expect(result.models[0].get('gender')).to.equal('f');
+                        expect(parseFloat(result.models[0].get('avg'))).to.equal((25 + 28) / 2);
+                        expect(result.models[1].get('gender')).to.equal('m');
+                        expect(parseFloat(result.models[1].get('avg'))).to.equal((12 + 70 + 3) / 3);
+                        done();
+                    });
+            });
+
             it('should return the sum of the ages of persons with firstName containing \'Ba\'', (done) => {
 
                 repository.Models.PersonModel

@@ -870,7 +870,10 @@ export default (Bookshelf, options = {}) => {
          */
         internals.buildGroup = (groupValues = []) => {
 
-            if (_isArray(groupValues) && !_isEmpty(groupValues)) {
+            if (!_isArray(groupValues)) {
+                groupValues = [groupValues];
+            }
+            if (!_isEmpty(groupValues)) {
 
                 groupValues = internals.formatColumnNames(groupValues);
 
