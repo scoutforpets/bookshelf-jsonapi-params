@@ -1,5 +1,7 @@
 # Changelog
 
+### 1.5.6 (June 9, 2021)
+- Bumped lodash version, regenerated lock files
 ### 1.5.5 (May 13, 2021)
 - Allowing a string to be given for group, automatically converting it to an array of strings
 
