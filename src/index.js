@@ -57,7 +57,7 @@ import jsonFields from './json-fields';
  *
  * See methods below for details.
  */
-export default (Bookshelf, options = {}) => {
+export default (Bookshelf, options = { nullString: 'null' }) => {
 
     // Load the pagination plugin if its not already there
     if (!_get(Bookshelf, 'Model.fetchPage')) {
@@ -528,7 +528,12 @@ export default (Bookshelf, options = {}) => {
                             // Remove all but the last table name, need to get number of dots
                             column = internals.formatRelation(internals.formatColumnNames([column])[0]);
                             if (!_isArray(value)) {
-                                value = split(String(value), { keepQuotes: true, sep: ',' });
+                                if (value){
+                                    value = split(String(value), { keepQuotes: true, sep: ',' });
+                                }
+                                else if (value === null) {
+                                    value = [value];
+                                }
                             }
                             if (jsonColumn) {
                                 jsonFields.buildFilterWithType(qb, Bookshelf.knex, 'equal', value, column, jsonColumn, dataType);
@@ -549,7 +554,7 @@ export default (Bookshelf, options = {}) => {
          */
         internals.equalityFilter = (qb, column, value, whereType = 'where') => {
 
-            const hasNull = value.length !== _pull(value, null, 'null').length;
+            const hasNull = value.length !== _pull(value, options.nullString, null).length;
             if (hasNull) {
                 qb[whereType]((qbWhere) => {
 

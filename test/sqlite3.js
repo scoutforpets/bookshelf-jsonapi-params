@@ -33,7 +33,6 @@ describe('bookshelf-jsonapi-params with sqlite3', () => {
             repository.knex.schema.dropTableIfExists('person'),
             repository.knex.schema.dropTableIfExists('pet'),
             repository.knex.schema.dropTableIfExists('toy')
-        )
-        .then(() => done());
+        ).then(() => done());
     });
 });

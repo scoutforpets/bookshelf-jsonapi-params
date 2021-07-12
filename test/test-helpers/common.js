@@ -10,6 +10,20 @@ export default function (repository, dbClient) {
 
         repository.Models = {};
 
+        repository.Models.MovieModel = repository.Model.extend({
+            tableName: 'movie',
+        
+            format: function (attrs) {
+                // This recreates the format behavior for those working with knex
+                return _.reduce(attrs, (result, val, key) => {
+
+                    const columnComponentParts = key.split('.').map(_.snakeCase);
+                    result[columnComponentParts.join('.')] = val;
+                    return result;
+                }, {});
+            }
+        });
+
         repository.Models.HouseModel = repository.Model.extend({
             tableName: 'house',
             people: function () {
@@ -122,6 +136,7 @@ export default function (repository, dbClient) {
             // Build the schema and add some data
             Promise.join(
                 repository.knex.schema.dropTableIfExists('person_house'),
+                repository.knex.schema.dropTableIfExists('movie'),
                 repository.knex.schema.dropTableIfExists('house'),
                 repository.knex.schema.dropTableIfExists('person'),
                 repository.knex.schema.dropTableIfExists('pet'),
@@ -136,6 +151,12 @@ export default function (repository, dbClient) {
                         table.string('year_built');
                         table.integer('bedrooms');
                         table.integer('bathrooms');
+                    }),
+                    repository.knex.schema.createTable('movie', (table) => {
+
+                        table.increments('id').primary();
+                        table.string('name');
+                        table.string('type');
                     }),
                     repository.knex.schema.createTable('person', (table) => {
 
@@ -307,12 +328,87 @@ export default function (repository, dbClient) {
                         type: 'car',
                         color: 'black',
                         pet_id: 2
+                    }),
+                    repository.Models.MovieModel.forge().save({
+                        id: 1,
+                        name: 'Gone',
+                        type: 'null'
+                    }),
+                    repository.Models.MovieModel.forge().save({
+                        id: 2,
+                        name: 'Spider',
+                        type: null
                     })
                 );
             }).then(() => done());
         });
 
         describe('passing no parameters', () => {
+
+            it('should return string null while passing string', (done) => {
+
+                repository.Models.MovieModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            'type': 'null'
+                        }
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(1);
+                        expect(result.models[0].get('name')).to.equal('Gone');
+                        done();
+                    });
+            });
+
+            it('should return value null while passing value', (done) => {
+
+                repository.Models.MovieModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            'type': 'null'
+                        }
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(1);
+                        expect(result.models[0].get('name')).to.equal('Gone');
+                        done();
+                    });
+            });
+
+            before((done) => {
+
+                repository.plugin(JsonApiParams, {
+                    nullString: '_null_'
+                });
+                done();
+            });
+
+            it('should return value null while passing _null_', (done) => {
+
+                repository.Models.MovieModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            'type': '_null_'
+                        }
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(1);
+                        expect(result.models[0].get('name')).to.equal('Spider');
+                        done();
+                    });
+            });
+
+            after((done) => {
+
+                repository.plugin(JsonApiParams, { nullString: 'null' });
+                done();
+            });
 
             it('should return a single record', (done) => {
 
