@@ -338,6 +338,11 @@ export default function (repository, dbClient) {
                         id: 2,
                         name: 'Spider',
                         type: null
+                    }),
+                    repository.Models.MovieModel.forge().save({
+                        id: 3,
+                        name: 'Go',
+                        type: '_null_'
                     })
                 );
             }).then(() => done());
@@ -406,7 +411,7 @@ export default function (repository, dbClient) {
 
             after((done) => {
 
-                repository.plugin(JsonApiParams, { nullString: 'null' });
+                repository.plugin(JsonApiParams, {});
                 done();
             });
 

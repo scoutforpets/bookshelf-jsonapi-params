@@ -27,7 +27,8 @@ import {
     last as _last,
     uniq as _uniq,
     union as _union,
-    cloneDeep as _cloneDeep
+    cloneDeep as _cloneDeep,
+    defaults as _defaults
 
 } from 'lodash';
 
@@ -57,8 +58,9 @@ import jsonFields from './json-fields';
  *
  * See methods below for details.
  */
-export default (Bookshelf, options = { nullString: 'null' }) => {
+export default (Bookshelf, options = {}) => {
 
+    _defaults(options, { nullString: 'null' });
     // Load the pagination plugin if its not already there
     if (!_get(Bookshelf, 'Model.fetchPage')) {
         Bookshelf.plugin(Paginator);
@@ -528,11 +530,11 @@ export default (Bookshelf, options = { nullString: 'null' }) => {
                             // Remove all but the last table name, need to get number of dots
                             column = internals.formatRelation(internals.formatColumnNames([column])[0]);
                             if (!_isArray(value)) {
-                                if (value){
-                                    value = split(String(value), { keepQuotes: true, sep: ',' });
-                                }
-                                else if (value === null) {
+                                if (value === null){
                                     value = [value];
+                                }
+                                else {
+                                    value = split(String(value), { keepQuotes: true, sep: ',' });
                                 }
                             }
                             if (jsonColumn) {
