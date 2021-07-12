@@ -348,41 +348,7 @@ export default function (repository, dbClient) {
             }).then(() => done());
         });
 
-        describe('passing no parameters', () => {
-
-            it('should return string null while passing string', (done) => {
-
-                repository.Models.MovieModel
-                    .forge()
-                    .fetchJsonApi({
-                        filter: {
-                            'type': 'null'
-                        }
-                    })
-                    .then((result) => {
-
-                        expect(result.models).to.have.length(1);
-                        expect(result.models[0].get('name')).to.equal('Gone');
-                        done();
-                    });
-            });
-
-            it('should return value null while passing value', (done) => {
-
-                repository.Models.MovieModel
-                    .forge()
-                    .fetchJsonApi({
-                        filter: {
-                            'type': 'null'
-                        }
-                    })
-                    .then((result) => {
-
-                        expect(result.models).to.have.length(1);
-                        expect(result.models[0].get('name')).to.equal('Gone');
-                        done();
-                    });
-            });
+        describe('passing null values and strings', () => {
 
             before((done) => {
 
@@ -409,11 +375,48 @@ export default function (repository, dbClient) {
                     });
             });
 
+            it('should return value null while passing value', (done) => {
+
+                repository.Models.MovieModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            'type': null
+                        }
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(1);
+                        expect(result.models[0].get('name')).to.equal('Spider');
+                        done();
+                    });
+            });
+
+            it('should return string null while passing null', (done) => {
+
+                repository.Models.MovieModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            'type': 'null'
+                        }
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(1);
+                        expect(result.models[0].get('name')).to.equal('Gone');
+                        done();
+                    });
+            });
+
             after((done) => {
 
                 repository.plugin(JsonApiParams, {});
                 done();
             });
+        });
+
+        describe('passing no parameters', () => {
 
             it('should return a single record', (done) => {
 
