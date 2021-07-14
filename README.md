@@ -220,14 +220,23 @@ bookshelf.plugin(jsonApiParams, {
     pagination: { limit: 25 }
 });
 ```
-
 _Note:_ pagination options passed into the `fetchJsonApi` will override the defaults.
+
+#### Default null string
+If provided with the string `'null'` as a filter value, it will be interpretted as the value `null` when determining what to filter. This is because in a URL, you can not give the value `null`, it is represented as a string, since a url is a string.
+This null string can be overrided to a string of your chosing if you need to filter by the literal string `'null'`.
+```js
+bookshelf.plugin(jsonApiParams, {
+    nullString: '_null'
+});
+```
+
 
 ### Parsing URL Parameters
 You can obviously parse all of the URL parameters yourself, but I would highly recommend using the fantastic [node-jsonapi-query-parser](https://github.com/kideh88/node-jsonapi-query-parser) module to handle this for you. The object produced by this module can be passed directly to this plugin without modification.
 
 ### Transforming Bookshelf Models to JSON API
-Once you have your Bookshelf model, how do you transform it to a JSON API payload? I'd recommend checking out our [jsonapi-mapper](https://github.com/scoutforpets/jsonapi-mapper) module, which will allow you automatically transform your Bookshelf model to a JSON API-compliant payload.
+Once you have your Bookshelf model, how do you transform it to a JSON API payload? I'd recommend checking out our [json-api-serializer](https://www.npmjs.com/package/json-api-serializer) module, which will allow you automatically transform your Bookshelf model to a JSON API-compliant payload.
 
 ## License
 

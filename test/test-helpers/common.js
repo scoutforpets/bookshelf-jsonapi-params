@@ -12,7 +12,7 @@ export default function (repository, dbClient) {
 
         repository.Models.MovieModel = repository.Model.extend({
             tableName: 'movie',
-        
+
             format: function (attrs) {
                 // This recreates the format behavior for those working with knex
                 return _.reduce(attrs, (result, val, key) => {
