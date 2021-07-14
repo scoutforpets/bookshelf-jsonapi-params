@@ -27,7 +27,8 @@ import {
     last as _last,
     uniq as _uniq,
     union as _union,
-    cloneDeep as _cloneDeep
+    cloneDeep as _cloneDeep,
+    defaults as _defaults
 
 } from 'lodash';
 
@@ -59,6 +60,7 @@ import jsonFields from './json-fields';
  */
 export default (Bookshelf, options = {}) => {
 
+    _defaults(options, { nullString: 'null' });
     // Load the pagination plugin if its not already there
     if (!_get(Bookshelf, 'Model.fetchPage')) {
         Bookshelf.plugin(Paginator);
@@ -528,7 +530,12 @@ export default (Bookshelf, options = {}) => {
                             // Remove all but the last table name, need to get number of dots
                             column = internals.formatRelation(internals.formatColumnNames([column])[0]);
                             if (!_isArray(value)) {
-                                value = split(String(value), { keepQuotes: true, sep: ',' });
+                                if (value === null){
+                                    value = [value];
+                                }
+                                else {
+                                    value = split(String(value), { keepQuotes: true, sep: ',' });
+                                }
                             }
                             if (jsonColumn) {
                                 jsonFields.buildFilterWithType(qb, Bookshelf.knex, 'equal', value, column, jsonColumn, dataType);
@@ -549,7 +556,7 @@ export default (Bookshelf, options = {}) => {
          */
         internals.equalityFilter = (qb, column, value, whereType = 'where') => {
 
-            const hasNull = value.length !== _pull(value, null, 'null').length;
+            const hasNull = value.length !== _pull(value, options.nullString, null).length;
             if (hasNull) {
                 qb[whereType]((qbWhere) => {
 
