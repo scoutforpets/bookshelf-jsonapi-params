@@ -1,5 +1,7 @@
 # Changelog
 
+### 1.5.8
+- Replaced `.` with `_` for join tables relationship filters
 ### 1.5.7
 - Added support for specifying a different null string other than 'null'
 
