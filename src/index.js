@@ -234,7 +234,8 @@ export default (Bookshelf, options = {}) => {
                 }
                 else if (relatedData.type === 'belongsTo'){
                     if (relatedData.throughTableName){
-                        const throughTableAlias = `${relationKey}_${relatedData.throughTableName}_pivot`;
+                        const throughTableAlias = `${relationKey}_${relatedData.throughTableName}_pivot`.replace(/\./g, '_');
+
                         qb.leftOuterJoin(`${relatedData.throughTableName} as ${throughTableAlias}`,
                             `${parentKey}.${relatedData.parentIdAttribute}`,
                             `${throughTableAlias}.${relatedData.throughIdAttribute}`);
@@ -251,12 +252,13 @@ export default (Bookshelf, options = {}) => {
                 else if (relatedData.type === 'belongsToMany'){
                     const otherKey = relatedData.otherKey ? relatedData.otherKey : `${inflection.singularize(relatedData.targetTableName)}_id`;
                     const joinTableName = relatedData.joinTableName ? relatedData.joinTableName : relatedData.throughTableName;
+                    const joinTableAlias = `${relationKey}_${joinTableName}`.replace(/\./g, '_')
 
-                    qb.leftOuterJoin(`${joinTableName} as ${relationKey}_${joinTableName}`,
+                    qb.leftOuterJoin(`${joinTableName} as ${joinTableAlias}`,
                         `${parentKey}.${relatedData.parentIdAttribute}`,
-                        `${relationKey}_${joinTableName}.${foreignKey}`);
+                        `${joinTableAlias}.${foreignKey}`);
                     qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
-                        `${relationKey}_${joinTableName}.${otherKey}`,
+                        `${joinTableAlias}.${otherKey}`,
                         `${relationKey}.${relatedData.targetIdAttribute}`);
                 }
                 else if (_includes(relatedData.type, 'morph')){
