@@ -342,7 +342,7 @@ export default function (repository, dbClient) {
                     repository.Models.MovieModel.forge().save({
                         id: 3,
                         name: 'Go',
-                        type: '_null_'
+                        type: 'Comedy'
                     })
                 );
             }).then(() => done());
@@ -405,6 +405,26 @@ export default function (repository, dbClient) {
 
                         expect(result.models).to.have.length(1);
                         expect(result.models[0].get('name')).to.equal('Gone');
+                        done();
+                    });
+            });
+
+            it('should not return value null while passing not _null_', (done) => {
+
+                repository.Models.MovieModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            not: {
+                                type: '_null_'
+                            }
+                        }
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(2);
+                        expect(result.models[0].get('name')).to.equal('Gone');
+                        expect(result.models[1].get('name')).to.equal('Go');
                         done();
                     });
             });

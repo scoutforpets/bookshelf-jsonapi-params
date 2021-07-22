@@ -439,7 +439,12 @@ export default (Bookshelf, options = {}) => {
                                 column = internals.formatRelation(internals.formatColumnNames([column])[0]);
                                 let valueArray = typeValue;
                                 if (!_isArray(valueArray)) {
-                                    valueArray = split(String(typeValue), { keepQuotes: true, sep: ',' });
+                                    if (valueArray === null){
+                                        valueArray = [valueArray];
+                                    }
+                                    else {
+                                        valueArray = split(String(valueArray), { keepQuotes: true, sep: ',' });
+                                    }
                                 }
                                 if (jsonColumn) {
                                     // Pass in the an equality filter for the same column name as last parameter for OR filtering with `like` and `equals`
@@ -488,7 +493,7 @@ export default (Bookshelf, options = {}) => {
                                         });
                                     }
                                     else if (key === 'not') {
-                                        const hasNull = valueArray.length !== _pull(valueArray, null, 'null').length;
+                                        const hasNull = valueArray.length !== _pull(valueArray, null, options.nullString).length;
                                         if (hasNull) {
                                             qb.whereNotNull(column);
                                         }
