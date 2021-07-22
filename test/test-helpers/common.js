@@ -12,7 +12,7 @@ export default function (repository, dbClient) {
 
         repository.Models.MovieModel = repository.Model.extend({
             tableName: 'movie',
-        
+
             format: function (attrs) {
                 // This recreates the format behavior for those working with knex
                 return _.reduce(attrs, (result, val, key) => {
@@ -157,6 +157,7 @@ export default function (repository, dbClient) {
                         table.increments('id').primary();
                         table.string('name');
                         table.string('type');
+                        table.jsonb('extra');
                     }),
                     repository.knex.schema.createTable('person', (table) => {
 
@@ -332,17 +333,29 @@ export default function (repository, dbClient) {
                     repository.Models.MovieModel.forge().save({
                         id: 1,
                         name: 'Gone',
-                        type: 'null'
+                        type: 'null',
+                        extra: {
+                            time: null,
+                            rating: 'R'
+                        }
                     }),
                     repository.Models.MovieModel.forge().save({
                         id: 2,
                         name: 'Spider',
-                        type: null
+                        type: null,
+                        extra: {
+                            time: 2,
+                            rating: 'R'
+                        }
                     }),
                     repository.Models.MovieModel.forge().save({
                         id: 3,
                         name: 'Go',
-                        type: 'Comedy'
+                        type: 'Comedy',
+                        extra: {
+                            time: 'null',
+                            rating: 'R'
+                        }
                     })
                 );
             }).then(() => done());

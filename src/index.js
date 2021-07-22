@@ -454,7 +454,7 @@ export default (Bookshelf, options = {}) => {
                                             extraEqualityFilter = split(String(extraEqualityFilter), { keepQuotes: true, sep: ',' });
                                         }
                                     }
-                                    jsonFields.buildFilterWithType(qb, Bookshelf.knex, key, valueArray, column, jsonColumn, dataType, extraEqualityFilter);
+                                    jsonFields.buildFilterWithType(options.nullString, qb, Bookshelf.knex, key, valueArray, column, jsonColumn, dataType, extraEqualityFilter);
                                 }
                                 else {
                                     // Attach different query for each type
@@ -543,7 +543,7 @@ export default (Bookshelf, options = {}) => {
                                 }
                             }
                             if (jsonColumn) {
-                                jsonFields.buildFilterWithType(qb, Bookshelf.knex, 'equal', value, column, jsonColumn, dataType);
+                                jsonFields.buildFilterWithType(options.nullString, qb, Bookshelf.knex, 'equal', value, column, jsonColumn, dataType);
                             }
                             else {
                                 internals.equalityFilter(qb, column, value);
