@@ -1,5 +1,7 @@
 # Changelog
 
+### 1.5.9
+- Fixed issue with nullString for filter by not null
 ### 1.5.8
 - Replaced `.` with `_` for join tables relationship filters
 ### 1.5.7
