@@ -1,10 +1,10 @@
 # Changelog
 
-### 1.5.9
+### 1.5.9 (July 22 2021)
 - Fixed issue with nullString for filter by not null
-### 1.5.8
+### 1.5.8 (July 15 2021)
 - Replaced `.` with `_` for join tables relationship filters
-### 1.5.7
+### 1.5.7 (July 14, 2021)
 - Added support for specifying a different null string other than 'null'
 
 ### 1.5.6 (June 9, 2021)
