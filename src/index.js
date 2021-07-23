@@ -456,7 +456,18 @@ export default (Bookshelf, options = {}) => {
                                             extraEqualityFilter = split(String(extraEqualityFilter), { keepQuotes: true, sep: ',' });
                                         }
                                     }
-                                    jsonFields.buildFilterWithType(qb, Bookshelf.knex, key, valueArray, column, jsonColumn, dataType, extraEqualityFilter);
+                                    const filterObj = {
+                                        nullString: options.nullString,
+                                        qb,
+                                        knex: Bookshelf.knex,
+                                        filterType: key,
+                                        values: valueArray,
+                                        column,
+                                        jsonColumn,
+                                        dataType,
+                                        extraEqualityFilterValues: extraEqualityFilter
+                                    };
+                                    jsonFields.buildFilterWithType(filterObj);
                                 }
                                 else {
                                     // Attach different query for each type
@@ -545,7 +556,18 @@ export default (Bookshelf, options = {}) => {
                                 }
                             }
                             if (jsonColumn) {
-                                jsonFields.buildFilterWithType(qb, Bookshelf.knex, 'equal', value, column, jsonColumn, dataType);
+                                const eqFilterObj = {
+                                    nullString: options.nullString,
+                                    qb,
+                                    knex: Bookshelf.knex,
+                                    filterType: 'equal',
+                                    values: value,
+                                    column,
+                                    jsonColumn,
+                                    dataType,
+                                    extraEqualityFilterValues: null
+                                };
+                                jsonFields.buildFilterWithType(eqFilterObj);
                             }
                             else {
                                 internals.equalityFilter(qb, column, value);

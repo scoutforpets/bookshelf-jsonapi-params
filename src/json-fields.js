@@ -49,12 +49,12 @@ const equalityJsonFilter = function (jsonSQL, values, hasNull, qb, bindings, kne
     }
 };
 
-module.exports.buildFilterWithType = function (qb, knex, filterType, values, column, jsonColumn, dataType, extraEqualityFilterValues) {
+module.exports.buildFilterWithType = function ({ nullString, qb, knex, filterType, values, column, jsonColumn, dataType, extraEqualityFilterValues }) {
 
     const { jsonSQL, bindings } = pgAttributeChain(column, jsonColumn, dataType);
 
     // Remove all null and 'null' from the values array. If the length is different after removal, there were nulls
-    const hasNull = values.length !== _pull(values, null, 'null').length;
+    const hasNull = values.length !== _pull(values, null, nullString).length;
 
     if (filterType === 'equal') {
         equalityJsonFilter(jsonSQL, values, hasNull, qb, bindings, knex);
@@ -76,7 +76,7 @@ module.exports.buildFilterWithType = function (qb, knex, filterType, values, col
 
             /// Handle if key is also in equality filter
             if (extraEqualityFilterValues) {
-                const extraHasNull = extraEqualityFilterValues.length !== _pull(extraEqualityFilterValues, null, 'null').length;
+                const extraHasNull = extraEqualityFilterValues.length !== _pull(extraEqualityFilterValues, null, nullString).length;
                 equalityJsonFilter(jsonSQL, extraEqualityFilterValues, extraHasNull, qbWhere, bindings, knex, 'orWhere');
             }
         });

@@ -1,6 +1,7 @@
 import Bookshelf from 'bookshelf';
 import Knex from 'knex';
 import Promise from 'bluebird';
+import JsonApiParams from '../src/index';
 
 // Use Chai.expect
 import Chai from 'chai';
@@ -25,6 +26,74 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
     require('./test-helpers/common')(repository, dbConfig.client);
 
     // Add postgres specific unit tests
+    describe('test null value/string', () => {
+
+        before((done) => {
+
+            repository.plugin(JsonApiParams, {
+                nullString: '_null_'
+            });
+            done();
+        });
+        it('should return results with null values', (done) => {
+
+            repository.Models.MovieModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        'extra:time': '_null_'
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('name')).to.equal('Gone');
+                    done();
+                });
+        });
+        it('should return results with null values', (done) => {
+
+            repository.Models.MovieModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        'extra:time': null
+                    }
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(1);
+                    expect(result.models[0].get('name')).to.equal('Gone');
+                    done();
+                });
+        });
+        it('should not return value null while passing not _null_', (done) => {
+
+            repository.Models.MovieModel
+                .forge()
+                .fetchJsonApi({
+                    filter: {
+                        not: {
+                            'extra:time': '_null_'
+                        }
+                    },
+                    sort: ['id']
+                })
+                .then((result) => {
+
+                    expect(result.models).to.have.length(2);
+                    expect(result.models[0].get('name')).to.equal('Spider');
+                    expect(result.models[1].get('name')).to.equal('Go');
+                    done();
+                });
+        });
+        after((done) => {
+
+            repository.plugin(JsonApiParams, {});
+            done();
+        });
+    });
+
     describe('passing in jsonb filtering', () => {
 
         it('should return results for json equality filter', (done) => {
