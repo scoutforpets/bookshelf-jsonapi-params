@@ -1,5 +1,7 @@
 # Changelog
 
+### 1.5.10 (July 23 2021)
+- Fixed nullString for json filtering
 ### 1.5.9 (July 22 2021)
 - Fixed issue with nullString for filter by not null
 ### 1.5.8 (July 15 2021)

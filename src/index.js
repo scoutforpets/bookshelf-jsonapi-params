@@ -252,7 +252,7 @@ export default (Bookshelf, options = {}) => {
                 else if (relatedData.type === 'belongsToMany'){
                     const otherKey = relatedData.otherKey ? relatedData.otherKey : `${inflection.singularize(relatedData.targetTableName)}_id`;
                     const joinTableName = relatedData.joinTableName ? relatedData.joinTableName : relatedData.throughTableName;
-                    const joinTableAlias = `${relationKey}_${joinTableName}`.replace(/\./g, '_')
+                    const joinTableAlias = `${relationKey}_${joinTableName}`.replace(/\./g, '_');
 
                     qb.leftOuterJoin(`${joinTableName} as ${joinTableAlias}`,
                         `${parentKey}.${relatedData.parentIdAttribute}`,
