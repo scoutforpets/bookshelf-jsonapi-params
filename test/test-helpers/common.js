@@ -431,7 +431,8 @@ export default function (repository, dbClient) {
                             not: {
                                 type: '_null_'
                             }
-                        }
+                        },
+                        sort: 'name'
                     })
                     .then((result) => {
 
