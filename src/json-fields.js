@@ -49,8 +49,9 @@ const equalityJsonFilter = function (jsonSQL, values, hasNull, qb, bindings, kne
     }
 };
 
-module.exports.buildFilterWithType = function (nullString, qb, knex, filterType, values, column, jsonColumn, dataType, extraEqualityFilterValues) {
+module.exports.buildFilterWithType = function (filterObj) {
 
+    const { nullString, qb, knex, filterType, values, column, jsonColumn, dataType, extraEqualityFilterValues } = filterObj;
     const { jsonSQL, bindings } = pgAttributeChain(column, jsonColumn, dataType);
 
     // Remove all null and 'null' from the values array. If the length is different after removal, there were nulls
