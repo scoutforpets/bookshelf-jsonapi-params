@@ -49,7 +49,7 @@ const equalityJsonFilter = function (jsonSQL, values, hasNull, qb, bindings, kne
     }
 };
 
-module.exports.buildFilterWithType = function ({ nullString, qb, knex, filterType, values, column, jsonColumn, dataType, extraEqualityFilterValues } = filterObj) {
+module.exports.buildFilterWithType = function ({ nullString, qb, knex, filterType, values, column, jsonColumn, dataType, extraEqualityFilterValues }) {
 
     const { jsonSQL, bindings } = pgAttributeChain(column, jsonColumn, dataType);
 
