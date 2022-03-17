@@ -86,13 +86,14 @@ The first parameter `options`, is passed in as an object that can have the follo
 {
     filter: {
         // Available filter objects
-        or: <filter>[]
+        or: <filter>[],
+        and: <filter>[],
         gt: {},
         gte: {},
         lt: {},
         lte: {},
         not: {},
-        like: {}
+        like: {},
         'person.age': 25
     },
     fields: {
@@ -116,11 +117,60 @@ You can combine multiple filter by passing "or" filter key with array of filter 
                     'pet.toy.type': 'skat'
                 }
             },
-            {type: 'monster'},
+            {
+                type: 'monster'
+            }
         ]
     },
 ```
-will return all objects with "type" equal to "monster" or "type" property of relation pet.toy similar to "skat". 
+will return all objects with "type" equal to "monster" or "type" property of relation pet.toy similar to "skat".
+
+If you need to use more than one or filter, such as (a || b) && (c || d), you can use the "and" field and provide multiple filter objects that contain "or".
+```
+    filter: {
+        and: [
+            {
+                or: [
+                    {
+                        like: {
+                            'pet.toy.type': 'skat'
+                        }
+                    },
+                    {
+                        type: 'monster'
+                    }
+                ]
+            },
+            {
+                or: [
+                    {
+                        age: 70
+                    },
+                    {
+                        gender: 'f'
+                    }
+                ]
+            }
+        ] 
+    },
+```
+This can also be useful in conjunction the "like" filter, since by default if you provide multiple values for a field, it will "or" them together.
+```
+    filter: {
+        and: [
+            {
+                like: {
+                   name: 'ba'
+                }
+            },
+            {
+                like: {
+                    name: 'ey'
+                }
+            }
+        ] 
+    },
+```
 
 #### fields
 Fields is passed in as an object and selects desired columns from your base table and also relationships.

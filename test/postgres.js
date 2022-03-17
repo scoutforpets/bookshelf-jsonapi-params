@@ -47,7 +47,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .then((result) => {
 
                     expect(result.models).to.have.length(1);
-                    expect(result.models[0].get('name')).to.equal('Gone');
+                    expect(result.models[0].get('name')).to.equal('Scary Movie');
                     done();
                 });
         });
@@ -63,7 +63,7 @@ describe('bookshelf-jsonapi-params with postgresql', () => {
                 .then((result) => {
 
                     expect(result.models).to.have.length(1);
-                    expect(result.models[0].get('name')).to.equal('Gone');
+                    expect(result.models[0].get('name')).to.equal('Scary Movie');
                     done();
                 });
         });
