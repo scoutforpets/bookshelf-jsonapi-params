@@ -86,7 +86,7 @@ export default (Bookshelf, options = {}) => {
 
         const internals = {};
         const { include, fields, sort, page = {}, filter, group } = opts;
-        const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte', 'or'];
+        const filterTypes = ['like', 'not', 'lt', 'gt', 'lte', 'gte', 'or', 'and'];
 
         // Do not add the global flag. The global flag will influence String.prototype.match and will
         // return a list of matches instead of matching groups. Changing this will break existing code.
@@ -142,8 +142,8 @@ export default (Bookshelf, options = {}) => {
 
             // Loop through each filter value
             _forEach(filterValues, (value, key) => {
-                // If the filter is "OR" filter fragments array
-                if (key === 'or') {
+                // If the filter is "OR" or "AND" filter fragments array
+                if (_isArray(value) && (key === 'or' || key === 'and')) {
                     internals.buildOrFilterDependencies(value, relationHash);
                 }
                 // If the filter is not an equality filter
@@ -537,6 +537,16 @@ export default (Bookshelf, options = {}) => {
                             _forEach(value, (fragment) => {
 
                                 orStatements.orWhere(internals.applyFilterFragment(fragment));
+                            });
+                        });
+                    }
+                    // If key is and and value is array
+                    else if (_isArray(value) && key === 'and') {
+                        qb.where((andStatements) => {
+
+                            _forEach(value, (fragment) => {
+
+                                andStatements.where(internals.applyFilterFragment(fragment));
                             });
                         });
                     }

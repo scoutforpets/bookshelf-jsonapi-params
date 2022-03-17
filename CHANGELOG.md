@@ -1,9 +1,12 @@
 # Changelog
 
-### 1.5.9 (July 23 2021)
+### 1.6.0 (March 16, 2022)
+- Added support for multiple `or` filters through use of a new `and` field
+
+### 1.5.9 (July 23, 2021)
 - Fixed nullString for json filtering
 - Fixed issue with nullString for filter by not null
-### 1.5.8 (July 15 2021)
+### 1.5.8 (July 15, 2021)
 - Replaced `.` with `_` for join tables relationship filters
 ### 1.5.7 (July 14, 2021)
 - Added support for specifying a different null string other than 'null'

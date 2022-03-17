@@ -235,6 +235,13 @@ export default function (repository, dbClient) {
                         gender: 'm',
                         type: null
                     }),
+                    repository.Models.PersonModel.forge().save({
+                        id: 6,
+                        firstName: 'Barney\'s Actor',
+                        age: 12,
+                        gender: 'm',
+                        type: 'zebra'
+                    }),
                     repository.knex('person_house').insert({
                         house_id: 1,
                         person_id: 1
@@ -291,7 +298,7 @@ export default function (repository, dbClient) {
                     repository.Models.PetModel.forge().save({
                         id: 4,
                         name: 'Grover',
-                        pet_owner_id: 1,
+                        pet_owner_id: 6,
                         style: {
                             species: 'dog',
                             age: 12,
@@ -332,7 +339,7 @@ export default function (repository, dbClient) {
                     }),
                     repository.Models.MovieModel.forge().save({
                         id: 1,
-                        name: 'Gone',
+                        name: 'Scary Movie',
                         type: 'null',
                         extra: {
                             time: null,
@@ -417,7 +424,7 @@ export default function (repository, dbClient) {
                     .then((result) => {
 
                         expect(result.models).to.have.length(1);
-                        expect(result.models[0].get('name')).to.equal('Gone');
+                        expect(result.models[0].get('name')).to.equal('Scary Movie');
                         done();
                     });
             });
@@ -432,13 +439,13 @@ export default function (repository, dbClient) {
                                 type: '_null_'
                             }
                         },
-                        sort: 'name'
+                        sort: ['name']
                     })
                     .then((result) => {
 
                         expect(result.models).to.have.length(2);
-                        expect(result.models[0].get('name')).to.equal('Gone');
-                        expect(result.models[1].get('name')).to.equal('Go');
+                        expect(result.models[0].get('name')).to.equal('Go');
+                        expect(result.models[1].get('name')).to.equal('Scary Movie');
                         done();
                     });
             });
@@ -472,7 +479,7 @@ export default function (repository, dbClient) {
                     .fetchJsonApi()
                     .then((result) => {
 
-                        expect(result.models).to.have.length(5);
+                        expect(result.models).to.have.length(6);
                         done();
                     });
             });
@@ -722,12 +729,12 @@ export default function (repository, dbClient) {
                     })
                     .then((result) => {
 
-                        expect(result.models).to.have.length(5);
+                        expect(result.models).to.have.length(6);
                         let nullIndex = 0;
                         let monsterIndex = 1;
                         // postgres returns nulls last
                         if (dbClient === 'pg') {
-                            nullIndex = 4;
+                            nullIndex = 5;
                             monsterIndex = 0;
                         }
                         expect(result.models[nullIndex].get('type')).to.equal(null);
@@ -745,15 +752,15 @@ export default function (repository, dbClient) {
                     })
                     .then((result) => {
 
-                        expect(result.models).to.have.length(5);
+                        expect(result.models).to.have.length(6);
                         // postgres returns nulls first
-                        let nullIndex = 4;
+                        let nullIndex = 5;
                         let triIndex = 0;
                         if (dbClient === 'pg') {
                             nullIndex = 0;
                             triIndex = 1;
                         }
-                        expect(result.models[triIndex].get('type')).to.equal('triceratops');
+                        expect(result.models[triIndex].get('type')).to.equal('zebra');
                         expect(result.models[nullIndex].get('type')).to.equal(null);
                         done();
                     });
@@ -768,7 +775,7 @@ export default function (repository, dbClient) {
                     })
                     .then((result) => {
 
-                        expect(result.models).to.have.length(5);
+                        expect(result.models).to.have.length(6);
                         expect(result.models[0].get('firstName')).to.equal('Baby Bop');
                         done();
                     });
@@ -783,7 +790,7 @@ export default function (repository, dbClient) {
                     })
                     .then((result) => {
 
-                        expect(result.models).to.have.length(5);
+                        expect(result.models).to.have.length(6);
                         expect(result.models[0].get('firstName')).to.equal('Elmo');
                         done();
                     });
@@ -878,10 +885,11 @@ export default function (repository, dbClient) {
                     })
                     .then((result) => {
 
-                        expect(result.models).to.have.length(2);
+                        expect(result.models).to.have.length(3);
                         result.models = _.sortBy(result.models, ['id']);
                         expect(result.models[0].get('firstName')).to.equal('Barney');
                         expect(result.models[1].get('firstName')).to.equal('Baby Bop');
+                        expect(result.models[2].get('firstName')).to.equal('Barney\'s Actor');
                         done();
                     });
             });
@@ -951,12 +959,13 @@ export default function (repository, dbClient) {
                     })
                     .then((result) => {
 
-                        expect(result.models).to.have.length(4);
+                        expect(result.models).to.have.length(5);
                         result.models = _.sortBy(result.models, ['id']);
                         expect(result.models[0].get('firstName')).to.equal('Baby Bop');
                         expect(result.models[1].get('firstName')).to.equal('Cookie Monster');
                         expect(result.models[2].get('firstName')).to.equal('Boo');
                         expect(result.models[3].get('firstName')).to.equal('Elmo');
+                        expect(result.models[4].get('firstName')).to.equal('Barney\'s Actor');
                         done();
                     });
             });
@@ -974,12 +983,13 @@ export default function (repository, dbClient) {
                     })
                     .then((result) => {
 
-                        expect(result.models).to.have.length(4);
+                        expect(result.models).to.have.length(5);
                         result.models = _.sortBy(result.models, ['id']);
                         expect(result.models[0].get('type')).to.equal('t-rex');
                         expect(result.models[1].get('type')).to.equal('triceratops');
                         expect(result.models[2].get('type')).to.equal('monster');
                         expect(result.models[3].get('type')).to.equal('nothing, here');
+                        expect(result.models[4].get('type')).to.equal('zebra');
                         done();
                     });
             });
@@ -997,12 +1007,13 @@ export default function (repository, dbClient) {
                     })
                     .then((result) => {
 
-                        expect(result.models).to.have.length(4);
+                        expect(result.models).to.have.length(5);
                         result.models = _.sortBy(result.models, ['id']);
                         expect(result.models[0].get('type')).to.equal('t-rex');
                         expect(result.models[1].get('type')).to.equal('triceratops');
                         expect(result.models[2].get('type')).to.equal('monster');
                         expect(result.models[3].get('type')).to.equal('nothing, here');
+                        expect(result.models[4].get('type')).to.equal('zebra');
                         done();
                     });
             });
@@ -1017,7 +1028,7 @@ export default function (repository, dbClient) {
                     .fetchJsonApi({
                         filter: {
                             not: {
-                                first_name: 'Barney,Baby Bop,Boo,Elmo'
+                                first_name: 'Barney,Baby Bop,Boo,Elmo,Barney\'s Actor'
                             }
                         }
                     })
@@ -1036,7 +1047,7 @@ export default function (repository, dbClient) {
                     .fetchJsonApi({
                         filter: {
                             not: {
-                                first_name: ['Barney', 'Baby Bop', 'Boo', 'Elmo']
+                                first_name: ['Barney', 'Baby Bop', 'Boo', 'Elmo', 'Barney\'s Actor']
                             }
                         }
                     })
@@ -1055,7 +1066,7 @@ export default function (repository, dbClient) {
                     .fetchJsonApi({
                         filter: {
                             not: {
-                                type: 'null,t-rex'
+                                type: 'null,t-rex,zebra'
                             }
                         }
                     })
@@ -1086,10 +1097,11 @@ export default function (repository, dbClient) {
                     })
                     .then((result) => {
 
-                        expect(result.models).to.have.length(2);
+                        expect(result.models).to.have.length(3);
                         result.models = _.sortBy(result.models, ['id']);
                         expect(result.models[0].get('firstName')).to.equal('Barney');
                         expect(result.models[1].get('firstName')).to.equal('Elmo');
+                        expect(result.models[2].get('firstName')).to.equal('Barney\'s Actor');
                         done();
                     });
             });
@@ -1110,11 +1122,12 @@ export default function (repository, dbClient) {
                     })
                     .then((result) => {
 
-                        expect(result.models).to.have.length(3);
+                        expect(result.models).to.have.length(4);
                         result.models = _.sortBy(result.models, ['id']);
                         expect(result.models[0].get('firstName')).to.equal('Barney');
                         expect(result.models[1].get('firstName')).to.equal('Baby Bop');
                         expect(result.models[2].get('firstName')).to.equal('Elmo');
+                        expect(result.models[3].get('firstName')).to.equal('Barney\'s Actor');
                         done();
                     });
             });
@@ -1361,6 +1374,116 @@ export default function (repository, dbClient) {
             });
         });
 
+        describe('passing in "and" filtering', () => {
+
+            it('should return results for "and" filters with ', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            and: [
+                                {
+                                    first_name: 'Cookie Monster'
+                                },
+                                {
+                                    gt: { age: 30 }
+                                }
+                            ]
+                        },
+                        sort: ['id']
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(1);
+                        expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                        done();
+                    });
+            });
+
+            it('should return zero results for "and" filters with same field but different value', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        filter: {
+                            and: [
+                                {
+                                    first_name: 'op'
+                                },
+                                {
+                                    first_name: 'Cookie Monster'
+                                }
+                            ]
+                        },
+                        sort: ['id']
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(0);
+                        repository.Models.PersonModel
+                            .forge()
+                            .fetchJsonApi({
+                                filter: {
+                                    and: [
+                                        {
+                                            like: {
+                                                first_name: 'op'
+                                            }
+                                        },
+                                        {
+                                            first_name: 'Cookie Monster'
+                                        }
+                                    ]
+                                },
+                                sort: ['id']
+                            }).then((result2) => {
+
+                                expect(result2.models).to.have.length(0);
+                                done();
+                            });
+                    });
+            });
+
+            it('should return results for "and" filters with nested "or"\'s', (done) => {
+
+                repository.Models.PersonModel
+                    .forge()
+                    .fetchJsonApi({
+                        include: ['pet.toy'],
+                        filter: {
+                            and: [
+                                {
+                                    or: [
+                                        {
+                                            first_name: 'Cookie Monster'
+                                        },
+                                        { 'pet.name': 'Big Bird' }
+                                    ]
+                                },
+                                {
+                                    or: [
+                                        {
+                                            age: 70
+                                        },
+                                        {
+                                            age: 60
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        sort: ['id']
+                    })
+                    .then((result) => {
+
+                        expect(result.models).to.have.length(1);
+                        expect(result.models[0].get('firstName')).to.equal('Cookie Monster');
+                        done();
+                    });
+            });
+        });
+
         describe('passing an `include` parameter', () => {
 
             it('should include the pet relationship', (done) => {
@@ -1455,11 +1578,12 @@ export default function (repository, dbClient) {
                     })
                     .then((result) => {
 
-                        expect(result.models).to.have.length(3);
+                        expect(result.models).to.have.length(4);
                         result.models = _.sortBy(result.models, ['id']);
                         expect(result.models[0].get('firstName')).to.equal('Barney');
                         expect(result.models[1].get('firstName')).to.equal('Baby Bop');
                         expect(result.models[2].get('firstName')).to.equal('Boo');
+                        expect(result.models[3].get('firstName')).to.equal('Barney\'s Actor');
                         done();
                     });
             });
@@ -1479,7 +1603,7 @@ export default function (repository, dbClient) {
                     .then((result) => {
 
                         expect(result.models).to.have.length(1);
-                        expect(parseInt(result.models[0].get('count'))).to.equal(5);
+                        expect(parseInt(result.models[0].get('count'))).to.equal(6);
                         done();
                     });
             });
@@ -1501,7 +1625,7 @@ export default function (repository, dbClient) {
                         expect(result.models[0].get('gender')).to.equal('f');
                         expect(parseFloat(result.models[0].get('avg'))).to.equal((25 + 28) / 2);
                         expect(result.models[1].get('gender')).to.equal('m');
-                        expect(parseFloat(result.models[1].get('avg'))).to.equal((12 + 70 + 3) / 3);
+                        expect(parseFloat(result.models[1].get('avg'))).to.equal((12 + 12 + 70 + 3) / 4);
                         done();
                     });
             });
@@ -1523,7 +1647,7 @@ export default function (repository, dbClient) {
                         expect(result.models[0].get('gender')).to.equal('f');
                         expect(parseFloat(result.models[0].get('avg'))).to.equal((25 + 28) / 2);
                         expect(result.models[1].get('gender')).to.equal('m');
-                        expect(parseFloat(result.models[1].get('avg'))).to.equal((12 + 70 + 3) / 3);
+                        expect(parseFloat(result.models[1].get('avg'))).to.equal((12 + 12 + 70 + 3) / 4);
                         done();
                     });
             });
@@ -1545,7 +1669,7 @@ export default function (repository, dbClient) {
                     .then((result) => {
 
                         expect(result.models).to.have.length(1);
-                        expect(parseInt(result.models[0].get('sum'))).to.equal(37);
+                        expect(parseInt(result.models[0].get('sum'))).to.equal(49);
                         done();
                     });
             });
@@ -1564,7 +1688,7 @@ export default function (repository, dbClient) {
                     .then((result) => {
 
                         expect(result.models).to.have.length(1);
-                        expect(parseInt(result.models[0].get('countId'))).to.equal(5);
+                        expect(parseInt(result.models[0].get('countId'))).to.equal(6);
                         done();
                     });
             });
@@ -1583,7 +1707,7 @@ export default function (repository, dbClient) {
                         expect(result.models[0].get('gender')).to.equal('f');
                         expect(parseFloat(result.models[0].get('avgAge'))).to.equal((25 + 28) / 2);
                         expect(result.models[1].get('gender')).to.equal('m');
-                        expect(parseFloat(result.models[1].get('avgAge'))).to.equal((12 + 70 + 3) / 3);
+                        expect(parseFloat(result.models[1].get('avgAge'))).to.equal((12 + 12 + 70 + 3) / 4);
                         done();
                     });
             });
@@ -1605,7 +1729,7 @@ export default function (repository, dbClient) {
                     .then((result) => {
 
                         expect(result.models).to.have.length(1);
-                        expect(parseInt(result.models[0].get('sumAge'))).to.equal(37);
+                        expect(parseInt(result.models[0].get('sumAge'))).to.equal(49);
                         done();
                     });
             });
@@ -1688,7 +1812,7 @@ export default function (repository, dbClient) {
 
                         expect(result.models).to.have.length(1);
                         expect(result.models[0].get('id')).to.equal(1);
-                        expect(result.pagination.pageCount).to.equal(5);
+                        expect(result.pagination.pageCount).to.equal(6);
                         done();
                     });
             });
