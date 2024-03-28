@@ -687,6 +687,10 @@ export default (Bookshelf, options = {}) => {
 
                                     // Put the table name in front of each column in cases where there are joins in the subquery
                                     columnsToSelect = _map(columnsToSelect, (fieldName) =>  {
+                                        // If knex.raw was passed to select
+                                        if (typeof fieldName === 'object' && fieldName.sql) {
+                                            return fieldName.sql;
+                                        }
 
                                         // If there is already an existing table name in the query, do not replace it
                                         if (_includes(fieldName, '.')) {
