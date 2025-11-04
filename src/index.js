@@ -697,7 +697,7 @@ export default (Bookshelf, options = {}) => {
 
                                     // Select the columns
                                     if (columnsToSelect.length) {
-                                        qb.columns(columnsToSelect);
+                                        qb.distinct().columns(columnsToSelect);
                                     }
                                 }
                             }

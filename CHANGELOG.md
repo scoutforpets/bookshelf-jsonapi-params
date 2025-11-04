@@ -1,4 +1,6 @@
 # Changelog
+### 1.6.1 (November 4, 2025)
+- Added DISINCT on subquery for included relationships using `fields` option
 
 ### 1.6.0 (March 16, 2022)
 - Added support for multiple `or` filters through use of a new `and` field
