@@ -1,4 +1,7 @@
 # Changelog
+### 1.6.2 (November 12, 2025)
+- Do not add DISTINCT on subquery if there is a custom query passed in to the relationship, can possibly have ill efffects
+
 ### 1.6.1 (November 4, 2025)
 - Added DISINCT on subquery for included relationships using `fields` option
 
