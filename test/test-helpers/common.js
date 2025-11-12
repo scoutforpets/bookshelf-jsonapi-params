@@ -13,7 +13,7 @@ export default function (repository, dbClient) {
         repository.Models.MovieModel = repository.Model.extend({
             tableName: 'movie',
 
-            format: function (attrs) {
+            format(attrs) {
                 // This recreates the format behavior for those working with knex
                 return _.reduce(attrs, (result, val, key) => {
 
@@ -26,12 +26,12 @@ export default function (repository, dbClient) {
 
         repository.Models.HouseModel = repository.Model.extend({
             tableName: 'house',
-            people: function () {
+            people() {
 
                 return this.belongsToMany(repository.Models.PersonModel, 'person_house', 'house_id', 'person_id');
             },
 
-            format: function (attrs) {
+            format(attrs) {
                 // This recreates the format behavior for those working with knex
                 return _.reduce(attrs, (result, val, key) => {
 
@@ -44,16 +44,16 @@ export default function (repository, dbClient) {
 
         repository.Models.ToyModel = repository.Model.extend({
             tableName: 'toy',
-            pet: function () {
+            pet() {
 
                 return this.belongsTo(repository.Models.PetModel, 'pet_id');
             },
-            owner: function () {
+            owner() {
 
                 return this.belongsTo(repository.Models.PersonModel, 'pet_owner_id').through(repository.Models.PetModel, 'pet_id');
             },
 
-            format: function (attrs) {
+            format(attrs) {
                 // This recreates the format behavior for those working with knex
                 return _.reduce(attrs, (result, val, key) => {
 
@@ -66,15 +66,15 @@ export default function (repository, dbClient) {
 
         repository.Models.PetModel = repository.Model.extend({
             tableName: 'pet',
-            petOwner: function () {
+            petOwner() {
 
                 return this.belongsTo(repository.Models.PersonModel, 'pet_owner_id');
             },
-            toy: function () {
+            toy() {
 
                 return this.hasOne(repository.Models.ToyModel);
             },
-            format: function (attrs) {
+            format(attrs) {
                 // This recreates the format behavior for those working with knex
                 return _.reduce(attrs, (result, val, key) => {
 
@@ -89,7 +89,7 @@ export default function (repository, dbClient) {
             tableName: 'person',
 
             // Converts snake_case attributes to camelCase
-            parse: function (attrs) {
+            parse(attrs) {
 
                 return _.reduce(attrs, (result, val, key) => {
 
@@ -99,13 +99,13 @@ export default function (repository, dbClient) {
             },
 
             // Converts camelCase attributes to snake_case.
-            format: function (attrs) {
+            format(attrs) {
 
                 return _.reduce(attrs, (result, val, key) => {
 
                     const aggregateFunctions = ['count', 'sum', 'avg', 'max', 'min'];
 
-                    if (_.some(aggregateFunctions, (f) => _.startsWith(key, f + '('))) {
+                    if (_.some(aggregateFunctions, (f) => _.startsWith(key, `${f  }(`))) {
                         result[key] = val;
                     }
                     else {
@@ -116,12 +116,12 @@ export default function (repository, dbClient) {
                 }, {});
             },
 
-            pet: function () {
+            pet() {
 
                 return this.hasOne(repository.Models.PetModel, 'pet_owner_id');
             },
 
-            houses: function () {
+            houses() {
 
                 return this.belongsToMany(repository.Models.HouseModel, 'person_house', 'person_id', 'house_id');
             }
@@ -384,7 +384,7 @@ export default function (repository, dbClient) {
                     .forge()
                     .fetchJsonApi({
                         filter: {
-                            'type': '_null_'
+                            type: '_null_'
                         }
                     })
                     .then((result) => {
@@ -401,7 +401,7 @@ export default function (repository, dbClient) {
                     .forge()
                     .fetchJsonApi({
                         filter: {
-                            'type': null
+                            type: null
                         }
                     })
                     .then((result) => {
@@ -418,7 +418,7 @@ export default function (repository, dbClient) {
                     .forge()
                     .fetchJsonApi({
                         filter: {
-                            'type': 'null'
+                            type: 'null'
                         }
                     })
                     .then((result) => {
@@ -563,6 +563,27 @@ export default function (repository, dbClient) {
                     });
             });
 
+            it('should return all fields when adding order by clause to included query', (done) => {
+
+                repository.Models.PersonModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: [{
+                            pet(qb) {
+
+                                qb.orderBy('name', 'asc');
+                            }
+                        }]
+                    }, false)
+                    .then((person) => {
+
+                        expect(person.get('firstName')).to.equal('Barney');
+                        expect(person.related('pet').get('name')).to.equal('Big Bird');
+                        expect(person.related('pet').get('style')).to.not.be.undefined;
+                        done();
+                    });
+            });
+
             it('should only return the specified field for the included relationship combined with fields parameter', (done) => {
 
                 repository.Models.PersonModel
@@ -654,6 +675,29 @@ export default function (repository, dbClient) {
                             expect(person.get('firstName')).to.not.be.undefined;
                             expect(person.get('gender')).to.be.undefined;
                         });
+                        done();
+                    });
+            });
+
+            it('should order included relationship using orderBy in query builder for belongsToMany', (done) => {
+
+                repository.Models.HouseModel
+                    .where({ id: 1 })
+                    .fetchJsonApi({
+                        include: [{
+                            people(qb) {
+
+                                qb.select('id', 'first_name').orderBy('gender', 'desc');
+                            }
+                        }]
+                    }, false)
+                    .then((house) => {
+
+                        expect(house.id).to.not.be.undefined;
+                        const people = house.related('people');
+                        expect(people.length).to.equal(2);
+                        expect(people.at(0).get('firstName')).to.equal('Barney');
+                        expect(people.at(1).get('firstName')).to.equal('Cookie Monster');
                         done();
                     });
             });
@@ -1510,7 +1554,7 @@ export default function (repository, dbClient) {
                     .where({ id: 1 })
                     .fetchJsonApi({
                         include: [{
-                            'pet': (qb) => {
+                            pet: (qb) => {
 
                                 qb.where({ name: 'Barney' });
                             }
@@ -1614,7 +1658,7 @@ export default function (repository, dbClient) {
                     .forge()
                     .fetchJsonApi({
                         fields: {
-                            person: ['avg(age)','gender']
+                            person: ['avg(age)', 'gender']
                         },
                         group: ['gender'],
                         sort: ['gender']
@@ -1636,7 +1680,7 @@ export default function (repository, dbClient) {
                     .forge()
                     .fetchJsonApi({
                         fields: {
-                            person: ['avg(age)','gender']
+                            person: ['avg(age)', 'gender']
                         },
                         group: 'gender',
                         sort: ['gender']
@@ -1824,4 +1868,4 @@ export default function (repository, dbClient) {
             });
         });
     });
-};
+}

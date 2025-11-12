@@ -114,7 +114,7 @@ export default (Bookshelf, options = {}) => {
          */
         internals.buildObjectLikeFilterDependencies = (value, relationHash) => {
 
-            if (!_isEmpty(value)){
+            if (!_isEmpty(value)) {
                 _forEach(value, (_, typeKey) => {
                     // Add relations to the relationHash
                     internals.buildDependenciesHelper(typeKey, relationHash);
@@ -147,7 +147,7 @@ export default (Bookshelf, options = {}) => {
                     internals.buildOrFilterDependencies(value, relationHash);
                 }
                 // If the filter is not an equality filter
-                if (_isObjectLike(value) && !_isArray(value)){
+                if (_isObjectLike(value) && !_isArray(value)) {
                     internals.buildObjectLikeFilterDependencies(value, relationHash);
                 }
                 // If the filter is an equality filter
@@ -167,18 +167,18 @@ export default (Bookshelf, options = {}) => {
 
             const relationHash = {};
             // Find relations in filterValues
-            if (_isObjectLike(filterValues) && !_isEmpty(filterValues)){
+            if (_isObjectLike(filterValues) && !_isEmpty(filterValues)) {
                 internals.buildDependenciesLoopHelper(filterValues, relationHash);
             }
 
             // Find relations in sortValues
-            if (_isObjectLike(sortValues) && !_isEmpty(sortValues)){
+            if (_isObjectLike(sortValues) && !_isEmpty(sortValues)) {
 
                 // Loop through each sort value
                 _forEach(sortValues, (value) => {
 
                     // If the sort value is descending, remove the dash
-                    if (value.indexOf('-') === 0){
+                    if (value.indexOf('-') === 0) {
                         value = value.substr(1);
                     }
                     // Add relations to the relationHash
@@ -187,7 +187,7 @@ export default (Bookshelf, options = {}) => {
             }
 
             // Find relations in groupValues
-            if (_isObjectLike(groupValues) && !_isEmpty(groupValues)){
+            if (_isObjectLike(groupValues) && !_isEmpty(groupValues)) {
 
                 // Loop through each group value
                 _forEach(groupValues, (value) => {
@@ -198,7 +198,7 @@ export default (Bookshelf, options = {}) => {
             }
 
             // Need to select model.* so all of the relations are not returned, also check if there is anything in fields object
-            if (_keys(relationHash).length && !_keys(fields).length){
+            if (_keys(relationHash).length && !_keys(fields).length) {
                 internals.model.query((qb) => {
 
                     qb.select(`${internals.modelName}.*`);
@@ -227,13 +227,13 @@ export default (Bookshelf, options = {}) => {
             internals.model.query((qb) => {
 
                 const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
-                if (relatedData.type === 'hasOne' || relatedData.type === 'hasMany'){
+                if (relatedData.type === 'hasOne' || relatedData.type === 'hasMany') {
                     qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`,
                         `${parentKey}.${relatedData.parentIdAttribute}`,
                         `${relationKey}.${foreignKey}`);
                 }
-                else if (relatedData.type === 'belongsTo'){
-                    if (relatedData.throughTableName){
+                else if (relatedData.type === 'belongsTo') {
+                    if (relatedData.throughTableName) {
                         const throughTableAlias = `${relationKey}_${relatedData.throughTableName}_pivot`.replace(/\./g, '_');
 
                         qb.leftOuterJoin(`${relatedData.throughTableName} as ${throughTableAlias}`,
@@ -249,7 +249,7 @@ export default (Bookshelf, options = {}) => {
                             `${relationKey}.${relatedData.targetIdAttribute}`);
                     }
                 }
-                else if (relatedData.type === 'belongsToMany'){
+                else if (relatedData.type === 'belongsToMany') {
                     const otherKey = relatedData.otherKey ? relatedData.otherKey : `${inflection.singularize(relatedData.targetTableName)}_id`;
                     const joinTableName = relatedData.joinTableName ? relatedData.joinTableName : relatedData.throughTableName;
                     const joinTableAlias = `${relationKey}_${joinTableName}`.replace(/\./g, '_');
@@ -261,24 +261,24 @@ export default (Bookshelf, options = {}) => {
                         `${joinTableAlias}.${otherKey}`,
                         `${relationKey}.${relatedData.targetIdAttribute}`);
                 }
-                else if (_includes(relatedData.type, 'morph')){
+                else if (_includes(relatedData.type, 'morph')) {
                     // Get the morph type and id
                     const morphType = relatedData.columnNames[0] ? relatedData.columnNames[0] : `${relatedData.morphName}_type`;
                     const morphId = relatedData.columnNames[1] ? relatedData.columnNames[0] : `${relatedData.morphName}_id`;
-                    if (relatedData.type === 'morphOne' || relatedData.type === 'morphMany'){
+                    if (relatedData.type === 'morphOne' || relatedData.type === 'morphMany') {
 
                         qb.leftOuterJoin(`${relatedData.targetTableName} as ${relationKey}`, (qbJoin) => {
 
                             qbJoin.on(`${relationKey}.${morphId}`, '=', `${parentKey}.${relatedData.parentIdAttribute}`);
                         }).where(`${relationKey}.${morphType}`, '=', relatedData.morphValue);
                     }
-                    else if (relatedData.type === 'morphTo'){
+                    else if (relatedData.type === 'morphTo') {
                         // Not implemented
                     }
                 }
             });
 
-            if (!_keys(relation).length){
+            if (!_keys(relation).length) {
                 return;
             }
             _forIn(relation, (value, key) => {
@@ -295,10 +295,10 @@ export default (Bookshelf, options = {}) => {
         internals.buildDependenciesHelper = (column, relationHash) => {
             // Split column on colons, example of column: 'relation.column:jsonbColumn.property:dataType'
             let [key] = column.split(':');
-            if (_includes(key, '.')){
+            if (_includes(key, '.')) {
                 // The last item in the chain is a column name, not a table. Do not include column name in relationHash
                 key = key.substring(0, key.lastIndexOf('.'));
-                if (!_has(relationHash, key)){
+                if (!_has(relationHash, key)) {
                     let level = relationHash;
                     const relations = key.split('.');
                     let relationModel = this.clone();
@@ -307,8 +307,8 @@ export default (Bookshelf, options = {}) => {
                     _forEach(relations, (relation) => {
 
                         // Check if valid relationship
-                        if (typeof relationModel[relation] === 'function' && relationModel[relation]().relatedData.type){
-                            if (!level[relation]){
+                        if (typeof relationModel[relation] === 'function' && relationModel[relation]().relatedData.type) {
+                            if (!level[relation]) {
                                 level[relation] = {};
                             }
                             level = level[relation];
@@ -372,7 +372,7 @@ export default (Bookshelf, options = {}) => {
                         // Add columns to query
                         internals.model.query((qb) => {
 
-                            if (!fieldKey){
+                            if (!fieldKey) {
                                 qb.distinct();
                             }
 
@@ -412,7 +412,7 @@ export default (Bookshelf, options = {}) => {
 
             if (_isObjectLike(filterValues) && !_isEmpty(filterValues)) {
                 // format the column names of the filters
-                //filterValues = this.format(filterValues);
+                // filterValues = this.format(filterValues);
 
                 // build the filter query
                 internals.model.query(internals.applyFilterFragment(filterValues));
@@ -441,7 +441,7 @@ export default (Bookshelf, options = {}) => {
                                 column = internals.formatRelation(internals.formatColumnNames([column])[0]);
                                 let valueArray = typeValue;
                                 if (!_isArray(valueArray)) {
-                                    if (valueArray === null){
+                                    if (valueArray === null) {
                                         valueArray = [valueArray];
                                     }
                                     else {
@@ -558,7 +558,7 @@ export default (Bookshelf, options = {}) => {
                             // Remove all but the last table name, need to get number of dots
                             column = internals.formatRelation(internals.formatColumnNames([column])[0]);
                             if (!_isArray(value)) {
-                                if (value === null){
+                                if (value === null) {
                                     value = [value];
                                 }
                                 else {
@@ -619,7 +619,7 @@ export default (Bookshelf, options = {}) => {
         internals.formatRelation = (attribute) => {
 
             let [column, jsonColumn, dataType] = attribute.split(':');
-            if (_includes(column, '.')){
+            if (_includes(column, '.')) {
                 const splitKey = column.split('.');
                 column = `${splitKey[splitKey.length - 2]}.${splitKey[splitKey.length - 1]}`;
             }
@@ -697,7 +697,10 @@ export default (Bookshelf, options = {}) => {
 
                                     // Select the columns
                                     if (columnsToSelect.length) {
-                                        qb.distinct().columns(columnsToSelect);
+                                        if (!_has(includeFunctions, relation)) {
+                                            qb.distinct();
+                                        }
+                                        qb.columns(columnsToSelect);
                                     }
                                 }
                             }
@@ -787,12 +790,12 @@ export default (Bookshelf, options = {}) => {
 
                 const foreignKey = relatedData.foreignKey ? relatedData.foreignKey : `${inflection.singularize(relatedData.parentTableName)}_${relatedData.parentIdAttribute}`;
 
-                if (relatedData.type === 'hasOne' || relatedData.type === 'hasMany'){
+                if (relatedData.type === 'hasOne' || relatedData.type === 'hasMany') {
                     // Parent: is relatedData.parentIdAttribute, already set by default
                     // Relation: is foreignKey
                     relationObject.requiredColumns.push(foreignKey);
                 }
-                else if (relatedData.type === 'belongsTo'){
+                else if (relatedData.type === 'belongsTo') {
                     if (relatedData.throughTableName) {
                         const throughForeignKey = relatedData.throughForeignKey ? relatedData.throughForeignKey : `${inflection.singularize(relatedData.throughTableName)}_${relatedData.throughIdAttribute}`;
                         // Belongs To Through
@@ -995,7 +998,7 @@ export default (Bookshelf, options = {}) => {
          */
         internals.isBelongsToRelation = (relationName, model) => {
 
-            if (!model.related(relationName)){
+            if (!model.related(relationName)) {
                 return false;
             }
             const relationType = model.related(relationName).relatedData.type.toLowerCase();
@@ -1017,7 +1020,7 @@ export default (Bookshelf, options = {}) => {
          */
         internals.isManyRelation = (relationName, model) => {
 
-            if (!model.related(relationName)){
+            if (!model.related(relationName)) {
                 return false;
             }
             const relationType = model.related(relationName).relatedData.type.toLowerCase();
@@ -1039,13 +1042,13 @@ export default (Bookshelf, options = {}) => {
          */
         internals.ishasOneRelation = (relationName, model) => {
 
-            if (!model.related(relationName)){
+            if (!model.related(relationName)) {
                 return false;
             }
             const relationType = model.related(relationName).relatedData.type.toLowerCase();
 
             if (relationType !== undefined &&
-                relationType === 'hasone'){
+                relationType === 'hasone') {
 
                 return true;
             }
@@ -1053,9 +1056,9 @@ export default (Bookshelf, options = {}) => {
             return false;
         };
 
-        ////////////////////////////////
-        /// Process parameters
-        ////////////////////////////////
+        // //////////////////////////////
+        // / Process parameters
+        // //////////////////////////////
 
         // Apply relational dependencies for filters, grouping and sorting
         internals.buildDependencies(filter, group, sort);
@@ -1078,7 +1081,7 @@ export default (Bookshelf, options = {}) => {
         internals.buildFields(fields, expandedIncludes, includesMap);
 
         // Apply extra query which was passed in as a parameter
-        if (_isFunction(additionalQuery)){
+        if (_isFunction(additionalQuery)) {
             internals.model.query(additionalQuery);
         }
 
